@@ -6,7 +6,19 @@
   <title>Image Converter</title>
 </head>
 <body>
-  <h1>Image Converter</h1>
-  <p>🔒Converti le tue immagini in modo privato e sicuro.</p>
+  <header>
+    <h1>Image Converter</h1>
+    <p>🔒Converti le tue immagini in modo privato e sicuro.</p>
+  </header>
+
+  <main>
+    <input type="file" id="file-input" accept="image/jpeg, image/png" />
+  </main>
+
+  <!-- Collego il file JavaScript alla pagina. 
+  Lo posiziono in fondo perché il browser legge la pagina dall'alto in basso: 
+  lo script deve partire dopo che il pulsante esiste, altrimenti non lo trova. 
+  -->
+  <script src="app.js"></script>
 </body>
 </html>
