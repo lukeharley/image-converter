@@ -4,11 +4,13 @@ const message = document.getElementById('message');
 const preview = document.getElementById('preview');
 const convertBtn = document.getElementById('convert-btn');
 const downloadLink = document.getElementById('download-link');
+const formatSelect = document.getElementById('format');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 // Nome leggibile di ogni formato, da mostrare all'utente.
 const FORMAT_LABELS = {'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WebP'};
 // Estensione del file per ogni formato.
-const FORMAT_EXTENSIONS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG', 'image/webp' : 'WebP'};
+const FORMAT_EXTENSIONS = {'image/png' : '.png', 'image/jpeg' : '.jpg', 'image/webp' : '.webp'};
+const OUTPUT_TYPES = ALLOWED_TYPES.filter(canEncode);
 
 // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - 
 // alcuni browser ripristinano lo stato dopo un caricamento). 
@@ -16,6 +18,7 @@ const FORMAT_EXTENSIONS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG', 'image/web
 convertBtn.disabled = true;
 convertBtn.textContent = 'Converti';
 downloadLink.hidden = true; 
+formatSelect.disabled = true;
 
 // GESTORE DI EVENTO 'change': eseguito ogni volta che l'utente sceglie (o annulla) un file
 fileInput.addEventListener('change', function () {
@@ -29,6 +32,7 @@ fileInput.addEventListener('change', function () {
         convertBtn.disabled = true;
         convertBtn.textContent = 'Converti';
         downloadLink.hidden = true; 
+        formatSelect.disabled = true;
         return;
     }
 
@@ -40,7 +44,8 @@ fileInput.addEventListener('change', function () {
         preview.hidden = true; 
         convertBtn.disabled = true;
         convertBtn.textContent = 'Converti';
-        downloadLink.hidden = true; 
+        downloadLink.hidden = true;
+        formatSelect.disabled = true; 
         return;
     }
     
@@ -53,8 +58,10 @@ fileInput.addEventListener('change', function () {
     if (preview.src) URL.revokeObjectURL(preview.src);
     preview.src = URL.createObjectURL(file); 
     preview.hidden = false; 
-    const targetType = getTargetType(file.type);
-    convertBtn.textContent = 'Converti in ' + FORMAT_LABELS[targetType];
+    fillFormatOptions(file.type);
+    formatSelect.disabled = false;
+    convertBtn.textContent = 'Converti';
+    
     // CALLBACK: eseguita dal browser quando l'anteprima dell'immagine ha finito di caricarsi
     preview.onload = function () { convertBtn.disabled = false; }; 
 }); 
@@ -69,7 +76,8 @@ convertBtn.addEventListener('click', function() {
 
     // Disegno l'anteprima sulla tela (pixel per pixel)
     const ctx = canvas.getContext('2d');
-    const format = getTargetType(fileInput.files[0].type); 
+    const format = formatSelect.value;
+    const fileExtension = FORMAT_EXTENSIONS[format]; 
     if (format === 'image/jpeg') {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -99,15 +107,10 @@ convertBtn.addEventListener('click', function() {
     }, format);
 });
 
-/**
- * Restituisce il formato in cui convertire l'immagine. 
- * Regola v0.1: il formato di destinazione è sempre "l'altro"
- * @param {string} sourceType - tipo MIME del file originale (es. 'image/png')
- * @returns {string} tipo MIME di destinazione (es. 'image/jpeg')
- */
-function getTargetType(sourceType) {
-    return sourceType === 'image/png' ? 'image/jpeg' : 'image/png';
-}
+// GESTORE DI EVENTO 'change' della select: un nuovo formato rende vecchio il download precedente
+formatSelect.addEventListener('change', function () {
+    downloadLink.hidden = true;
+});
 
 /**
  * Verifica se il browser sa creare immagini nel formato indicato. 
@@ -121,4 +124,21 @@ function canEncode(type) {
     canvas.width = 1; 
     canvas.height = 1; 
     return canvas.toDataURL(type).startsWith('data:' + type);
+}
+
+/**
+ * Riempie la select con i formati di destinazione possibili,
+ * escludendo il formato del file di partenza. 
+ * @param {string} sourceType - tipo MIME del file originale 
+ */
+function fillFormatOptions(sourceType) {
+    formatSelect.innerHTML = ''; // Svuota le opzioni precedenti
+    for (const type of OUTPUT_TYPES) {
+        if (type === sourceType) continue;
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = FORMAT_LABELS[type];
+        formatSelect.appendChild(option);
+    }
+
 }
