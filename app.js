@@ -5,6 +5,7 @@ const preview = document.getElementById('preview');
 const convertBtn = document.getElementById('convert-btn');
 const downloadLink = document.getElementById('download-link');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
+const FORMAT_LABELS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG'};
 
 // Quando il suo valore cambia ("change"), ovvero l'utente sceglie un file
 fileInput.addEventListener('change', function () {
@@ -15,7 +16,9 @@ fileInput.addEventListener('change', function () {
     if (!file) {
         message.textContent = '';
         preview.hidden = true; 
+        // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - alcuni browser ripristinano lo stato dopo un caricamento)
         convertBtn.disabled = true;
+        convertBtn.textContent = 'Converti';
         downloadLink.hidden = true; 
         return;
     }
@@ -23,10 +26,11 @@ fileInput.addEventListener('change', function () {
     // Formato non ammesso: mostra l'errore e svuota l'input,
     // così accanto al pulsante non resta il nome del file rifiutato
     if (!ALLOWED_TYPES.includes(file.type)) {
-        message.textContent = '❌ Formato non supportato. Scegli un JPG o PNG.';
+        message.textContent = '❌ Formato non supportato. Il file selezionato deve essere nel formato JPG o PNG.';
         fileInput.value = '';
         preview.hidden = true; 
         convertBtn.disabled = true;
+        convertBtn.textContent = 'Converti';
         downloadLink.hidden = true; 
         return;
     }
@@ -40,6 +44,8 @@ fileInput.addEventListener('change', function () {
     if (preview.src) URL.revokeObjectURL(preview.src);
     preview.src = URL.createObjectURL(file); 
     preview.hidden = false; 
+    const targetType = getTargetType(file.type);
+    convertBtn.textContent = 'Converti in ' + FORMAT_LABELS[targetType];
     preview.onload = function () { convertBtn.disabled = false; }; 
 }); 
 
@@ -79,6 +85,7 @@ convertBtn.addEventListener('click', function() {
     }, format);
 });
 
+// Regola v0.1: il formato di destinazione è sempre "l'altro"
 function getTargetType(sourceType) {
-    sourceType === '.png' ? '.jpg': '.png';
+    return sourceType === 'image/png' ? 'image/jpeg' : 'image/png';
 }
