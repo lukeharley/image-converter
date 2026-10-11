@@ -6,7 +6,7 @@
 
 - Selezione di più immagini insieme
 - Griglia di miniature con nome, peso e stato della conversione di ogni immagine
-- Download di tutte le immagini convertite in un unico archivio ZIP, creato senza librerie esterne
+- Download di tutte le immagini convertite singolarmente o in un unico archivio ZIP, creato senza librerie esterne
 - Gestione dei nomi duplicati nello ZIP ("foto.webp", "foto (2).webp")
 - Sfondo a scacchiera nelle miniature per rendere visibili le zone trasparenti
 - Link "Scarica" in ogni scheda per scaricare solo alcune immagini convertite
