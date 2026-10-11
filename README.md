@@ -32,11 +32,35 @@ Il convertitore di immagini privato: converte, ridimensiona e comprime immagini 
 - v0.4: compressione e ridimensionamento ✅
 - v0.5: rimozione esplicita dei metadati (EXIF, posizione GPS) e funzionamento offline (PWA) ✅
 - v0.6: conversione delle foto iPhone (HEIC → JPG) ✅
+- v0.7: profili rapidi, impostazioni ricordate, incolla con Ctrl+V, avviso di nuova versione, intestazioni di sicurezza, accessibilità (contrasto WCAG AA) ✅
+- v0.8: qualità
+  - test automatici nel repository ed esecuzione a ogni pull request (GitHub Actions)
+  - limite del canvas su iPhone/Safari (circa 16,7 megapixel): riduzione automatica con avviso per le foto più grandi
+- v0.9: nuove funzioni
+  - immagini → PDF (un unico documento, senza librerie esterne)
+  - confronto prima/dopo con cursore e zoom
+  - rinomina in blocco (es. `vacanze-001.jpg`)
+- v1.0: pubblicazione
+  - pagine dedicate in italiano e inglese per le ricerche più comuni (`hreflang`)
+  - dominio proprio
+  - pagina "Verifica la privacy" e informativa privacy
+  - codice open source con licenza
+
+### Dopo la v1.0
+
+- `app.js` diviso in moduli ES
+- Elaborazione in parallelo in più worker (OffscreenCanvas)
+- Codec migliori in WebAssembly (MozJPEG, AVIF)
+- Ritaglio, rotazione e formati per social e fototessere
+- Condivisione (Web Share API) e "Condividi con PIC" dalla galleria (Web Share Target)
+- Statistiche d'uso senza tracciamento né cookie
+- Proporre al design system Industry le correzioni di contrasto (oggi applicate in `style.css`)
 
 ## Note per i rilasci
 
 - A ogni nuova versione va aggiornata la costante `CACHE` in `sw.js` (es. `pic-v0.6`): così i browser che hanno installato l'app scaricano i file nuovi e cancellano quelli vecchi.
 - Ogni file nuovo dell'app va aggiunto anche all'elenco `FILES` di `sw.js`, altrimenti offline non sarà disponibile.
+- Le intestazioni di sicurezza (CSP, protezione dal clickjacking) sono in `_headers`, letto da Cloudflare. Se si aggiunge una risorsa di un nuovo tipo, va aggiornata la CSP sia lì sia nel `<meta>` di `index.html`.
 - Eccezione voluta: il decoder HEIC (`vendor/libheif/`, 2 MB) non è in `FILES`, per non farlo scaricare a chi non lo usa. Viene salvato alla prima foto HEIC aperta online; da quel momento funziona anche offline.
 
 ## Componenti di terze parti

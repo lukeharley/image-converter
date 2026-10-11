@@ -1,5 +1,9 @@
 // Riferimenti agli elementi della pagina
 const langBtn = document.getElementById('lang-btn');
+const updateBanner = document.getElementById('update-banner');
+const updateBtn = document.getElementById('update-btn');
+const presetsField = document.getElementById('presets-field');
+const presetsGroup = document.getElementById('presets');
 const fileInput = document.getElementById('file-input');
 const dropzone = document.getElementById('dropzone');
 const browseBtn = document.getElementById('browse-btn');
@@ -22,6 +26,7 @@ const progress = document.getElementById('progress');
 const progressLabel = document.getElementById('progress-label');
 const progressPct = document.getElementById('progress-pct');
 const progressFill = document.getElementById('progress-fill');
+const progressBar = document.getElementById('progress-bar');
 const message = document.getElementById('message');
 const rejectedBox = document.getElementById('rejected');
 const rejectedCount = document.getElementById('rejected-count');
@@ -58,6 +63,14 @@ const WEIGHT_OPTIONS = [
     { value: 500000, label: '500 KB' },
     { value: 200000, label: '200 KB' }
 ];
+// Profili rapidi: impostano con un clic formato, lato lungo massimo e peso massimo
+const PRESETS = [
+    { key: 'presetEmail', format: 'image/jpeg', size: 1920, weight: 1000000 },
+    { key: 'presetWeb', format: 'image/webp', size: 1920, weight: 500000 },
+    { key: 'presetForms', format: 'image/jpeg', size: 2560, weight: 500000 }
+];
+// Chiave con cui le ultime impostazioni (formato, dimensioni, peso) vengono ricordate nel browser
+const SETTINGS_KEY = 'pic-settings';
 // Qualità di JPG e WebP: quella normale e la minima accettabile prima di ridurre i lati
 const DEFAULT_QUALITY = 0.9;
 const MIN_QUALITY = 0.5;
@@ -103,9 +116,13 @@ langBtn.addEventListener('click', function () {
     refreshTexts();
 });
 
+// Ultime impostazioni usate (formato, dimensioni, peso), se ci sono
+const savedSettings = loadSettings();
+
 // Controlli di dimensioni e peso: creati una volta sola, la scelta resta tra una selezione e l'altra
-fillSegment(sizeGroup, 'size', SIZE_OPTIONS, 0);
-fillSegment(weightGroup, 'weight', WEIGHT_OPTIONS, 0);
+fillSegment(sizeGroup, 'size', SIZE_OPTIONS, savedSettings.size);
+fillSegment(weightGroup, 'weight', WEIGHT_OPTIONS, savedSettings.weight);
+renderPresets();
 
 // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML:
 // alcuni browser ripristinano lo stato dopo un ricaricamento).
@@ -115,8 +132,24 @@ setEmptyState();
 // Funzionamento offline: il service worker conserva i file dell'app nel browser.
 // Fallisce, senza conseguenze, se la pagina è aperta come file locale (file://).
 if ('serviceWorker' in navigator) {
+    // Se la pagina era già gestita da un service worker e ne subentra un altro, è uscita una
+    // nuova versione: lo si dice all'utente, senza ricaricare da soli (perderebbe il lavoro in corso)
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (hadController) updateBanner.hidden = false;
+    });
     navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+updateBtn.addEventListener('click', () => location.reload());
+
+// INCOLLA (Ctrl+V / Cmd+V): le immagini negli appunti, ad esempio uno screenshot,
+// vengono trattate come file scelti
+document.addEventListener('paste', function (event) {
+    const files = Array.from(event.clipboardData ? event.clipboardData.files : []);
+    if (files.length === 0 || phase === 'run') return;
+    event.preventDefault();
+    handleFiles(files.map(pastedFile));
+});
 
 // "Sfoglia…" e "Cambia selezione" aprono il selettore di file nascosto
 browseBtn.addEventListener('click', () => fileInput.click());
@@ -171,6 +204,7 @@ reconvertBtn.addEventListener('click', convertAll);
 // lo ZIP precedente e i file convertiti nelle singole schede, quindi si torna allo stato PRONTO
 for (const group of [formatGroup, sizeGroup, weightGroup]) {
     group.addEventListener('change', function () {
+        saveSettings();
         if (phase === 'done') {
             clearResults();
             setPhase('ready');
@@ -315,9 +349,9 @@ function setPhase(newPhase, canDownload = false) {
     selection.hidden = phase === 'empty';
     changeBtn.disabled = phase === 'run';
 
-    for (const field of [formatField, sizeField, weightField]) {
+    for (const field of [presetsField, formatField, sizeField, weightField]) {
         field.classList.toggle('locked', locked);
-        for (const input of field.querySelectorAll('input')) input.disabled = locked;
+        for (const control of field.querySelectorAll('input, button')) control.disabled = locked;
     }
 
     convertBtn.hidden = phase === 'done';
@@ -510,6 +544,7 @@ function showProgress(done, total) {
     const pct = total === 0 ? 100 : Math.round(done / total * 100);
     progressPct.textContent = pct + '%';
     progressFill.style.width = pct + '%';
+    progressBar.setAttribute('aria-valuenow', pct);   // per i lettori di schermo
 }
 
 /**
@@ -570,6 +605,7 @@ function renderRejected() {
 function refreshTexts() {
     fillSegment(sizeGroup, 'size', SIZE_OPTIONS, selectedValue(sizeGroup));
     fillSegment(weightGroup, 'weight', WEIGHT_OPTIONS, selectedValue(weightGroup));
+    renderPresets();
     setPhase(phase, view.canDownload);   // riapplica lo stato ai pulsanti appena ricreati
     renderSelection();
     renderProgress();
@@ -611,6 +647,90 @@ function icon(name, size) {
  */
 function hasFiles(event) {
     return event.dataTransfer && Array.from(event.dataTransfer.types).includes('Files');
+}
+
+/**
+ * Crea i pulsanti dei profili rapidi, con nome e dettagli ("Email · JPG · 1920 px · 1 MB").
+ */
+function renderPresets() {
+    presetsGroup.replaceChildren();
+    for (const preset of PRESETS) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-secondary preset-btn';
+        const details = document.createElement('small');
+        details.textContent = `${FORMAT_LABELS[presetFormat(preset)]} · ${preset.size} px · ${formatLimit(preset.weight)}`;
+        button.append(t(preset.key), details);
+        button.addEventListener('click', () => applyPreset(preset));
+        presetsGroup.appendChild(button);
+    }
+}
+
+/**
+ * Formato di un profilo; se il browser non sa creare WebP, si ripiega sul JPG.
+ * @param {{format: string}} preset
+ * @returns {string} tipo MIME
+ */
+function presetFormat(preset) {
+    return OUTPUT_TYPES.includes(preset.format) ? preset.format : 'image/jpeg';
+}
+
+/**
+ * Applica un profilo: seleziona formato, dimensioni e peso come se li avesse scelti l'utente
+ * (stesso evento 'change', quindi i risultati precedenti si azzerano e la scelta viene ricordata).
+ * @param {{format: string, size: number, weight: number}} preset
+ */
+function applyPreset(preset) {
+    const choices = [[formatGroup, presetFormat(preset)], [sizeGroup, preset.size], [weightGroup, preset.weight]];
+    for (const [group, value] of choices) {
+        const input = group.querySelector(`input[value="${value}"]`);
+        if (!input || input.checked) continue;
+        input.checked = true;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+}
+
+/**
+ * Legge le ultime impostazioni salvate nel browser.
+ * @returns {{format: string, size: number, weight: number}} valori vuoti se non ce ne sono
+ */
+function loadSettings() {
+    const settings = { format: '', size: 0, weight: 0 };
+    try {
+        const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+        if (OUTPUT_TYPES.includes(saved.format)) settings.format = saved.format;
+        if (SIZE_OPTIONS.some(o => o.value === saved.size)) settings.size = saved.size;
+        if (WEIGHT_OPTIONS.some(o => o.value === saved.weight)) settings.weight = saved.weight;
+    } catch (error) {
+        // localStorage non disponibile o contenuto non valido: si parte dai valori predefiniti
+    }
+    return settings;
+}
+
+/**
+ * Ricorda nel browser le impostazioni attuali, per la prossima visita.
+ */
+function saveSettings() {
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            format: selectedFormat(), size: selectedValue(sizeGroup), weight: selectedValue(weightGroup)
+        }));
+    } catch (error) {
+        // Senza localStorage le impostazioni valgono solo fino alla chiusura della pagina
+    }
+}
+
+/**
+ * Dà un nome leggibile alle immagini incollate dagli appunti: i browser chiamano "image.png"
+ * ogni screenshot. I file copiati da una cartella hanno già il loro nome e restano così.
+ * @param {File} file
+ * @returns {File}
+ */
+function pastedFile(file) {
+    if (!/^image\.(png|jpe?g|gif|webp)$/i.test(file.name)) return file;
+    const stamp = new Date().toISOString().slice(0, 19).replace('T', '-').replace(/:/g, '');
+    const extension = FORMAT_EXTENSIONS[file.type] || '.png';
+    return new File([file], `${t('pastedName')}-${stamp}${extension}`, { type: file.type, lastModified: file.lastModified });
 }
 
 /**
@@ -660,13 +780,15 @@ function fillSegment(group, name, options, chosen) {
  * Compaiono tutti i formati che il browser sa creare (non l'HEIC, che si può solo aprire):
  * anche quello di partenza, perché
  * dalla v0.4 si può ridimensionare o comprimere senza cambiare formato.
- * Resta scelto il formato precedente; se però tutte le immagini sono già in quel formato,
- * se ne propone un altro (scegliere lo stesso formato ha senso solo con dimensioni o peso).
+ * Resta scelto il formato precedente; se però tutte le immagini sono già in quel formato e non
+ * ci sono limiti di dimensioni o peso, se ne propone un altro (non ci sarebbe niente da fare).
  * @param {Set<string>} sourceTypes - formati delle immagini scelte
  */
 function fillFormatOptions(sourceTypes) {
-    const previous = selectedFormat() || DEFAULT_FORMAT;
-    const allSame = sourceTypes.size === 1 && sourceTypes.has(previous);
+    const previous = selectedFormat() || savedSettings.format || DEFAULT_FORMAT;
+    // Stesso formato senza limiti di dimensioni o peso: non ci sarebbe niente da fare
+    const noLimits = !selectedValue(sizeGroup) && !selectedValue(weightGroup);
+    const allSame = sourceTypes.size === 1 && sourceTypes.has(previous) && noLimits;
     const allHeic = sourceTypes.size > 0 && [...sourceTypes].every(type => HEIC_TYPES.includes(type));
     // Le foto iPhone si convertono quasi sempre in JPG, il formato che si apre ovunque
     const chosen = allHeic ? 'image/jpeg'

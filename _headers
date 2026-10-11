@@ -1,0 +1,19 @@
+# Intestazioni di sicurezza servite da Cloudflare (Workers / Pages) per ogni file del sito.
+#
+# Content-Security-Policy: rispetto a quella nel <meta> di index.html aggiunge
+#  - frame-ancestors 'none': nessun sito può mostrare PIC dentro un riquadro (difesa dal clickjacking);
+#    nel <meta> questa regola non ha effetto, solo l'intestazione la applica;
+#  - 'wasm-unsafe-eval': permette al worker HEIC di avviare il decoder WebAssembly;
+#  - connect-src 'self': serve al service worker per scaricare i file dell'app.
+# La pagina riceve sia questa politica sia quella del <meta> e deve rispettarle entrambe:
+# per lei restano valide le regole più severe del <meta> (connect-src 'none', niente WebAssembly).
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# Il service worker va sempre ricontrollato, così gli aggiornamenti arrivano subito
+/sw.js
+  Cache-Control: no-cache
