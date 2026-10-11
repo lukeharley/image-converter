@@ -7,7 +7,14 @@ const downloadLink = document.getElementById('download-link');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 const FORMAT_LABELS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG'};
 
-// Quando il suo valore cambia ("change"), ovvero l'utente sceglie un file
+// Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - 
+// alcuni browser ripristinano lo stato dopo un caricamento). 
+// Codice eseguito una volta sola, al caricamento.
+convertBtn.disabled = true;
+convertBtn.textContent = 'Converti';
+downloadLink.hidden = true; 
+
+// GESTORE DI EVENTO 'change': eseguito ogni volta che l'utente sceglie (o annulla) un file
 fileInput.addEventListener('change', function () {
     // Prendi il primo file scelto
     const file = fileInput.files[0];
@@ -15,8 +22,7 @@ fileInput.addEventListener('change', function () {
     // Nessun file (es. l'utente ha premuto Annulla): pulisci il messaggio ed esci
     if (!file) {
         message.textContent = '';
-        preview.hidden = true; 
-        // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - alcuni browser ripristinano lo stato dopo un caricamento)
+        preview.hidden = true;
         convertBtn.disabled = true;
         convertBtn.textContent = 'Converti';
         downloadLink.hidden = true; 
@@ -46,9 +52,12 @@ fileInput.addEventListener('change', function () {
     preview.hidden = false; 
     const targetType = getTargetType(file.type);
     convertBtn.textContent = 'Converti in ' + FORMAT_LABELS[targetType];
+    // CALLBACK: eseguita dal browser quando l'anteprima dell'immagine ha finito di caricars
     preview.onload = function () { convertBtn.disabled = false; }; 
 }); 
 
+// GESTORE DI EVENTO 'click': eseguito quando l'utente preme sul pulsante "Converti" 
+// Ridisegna l'immagine su un canvas e la ricodifica nel formato di destinazione.
 convertBtn.addEventListener('click', function() {
     // Creo una "tela" grande quanto l'immagine originale
     const canvas = document.createElement('canvas');
@@ -64,6 +73,8 @@ convertBtn.addEventListener('click', function() {
     }
     ctx.drawImage(preview, 0, 0);
 
+    // CALLBACK: eseguita dal browser quando la ricodifica è terminata (operazione asincrona) 
+    // Riceve il file convertito (blob) e prepara il link per scaricarlo con il nome corretto.
     canvas.toBlob(function (blob) {
         if (!blob) {
             message.textContent = '❌ Conversione non riuscita, riprova.'; 
@@ -85,7 +96,12 @@ convertBtn.addEventListener('click', function() {
     }, format);
 });
 
-// Regola v0.1: il formato di destinazione è sempre "l'altro"
+/**
+ * Restituisce il formato in cui convertire l'immagine. 
+ * Regola v0.1: il formato di destinazione è sempre "l'altro"
+ * @param {string} sourceType - tipo MIME del file originale (es. 'image/png')
+ * @returns {string} - tipo MIME di destinazione (es. 'image/jpeg')
+*/
 function getTargetType(sourceType) {
     return sourceType === 'image/png' ? 'image/jpeg' : 'image/png';
 }
