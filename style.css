@@ -267,6 +267,33 @@ h1 {
     margin-top: 2px;
 }
 
+/* Etichetta dei metadati dell'originale: GPS in evidenza, "rimossi" nel colore di successo */
+.metadata-tag {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+.metadata-tag[hidden] {
+    display: none;
+}
+
+.metadata-tag svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.metadata-tag.gps {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.metadata-tag.removed {
+    color: var(--color-accent-700);
+}
+
 .status.done {
     color: var(--color-accent-700);
 }

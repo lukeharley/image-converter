@@ -68,6 +68,9 @@ const ICONS = {
     wait: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
     skip: '<path d="M5 12h14"></path>',
     fail: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
+    pin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle>',
+    info: '<circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path>',
     warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>',
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line>'
 };
@@ -101,6 +104,12 @@ fillSegment(weightGroup, 'weight', WEIGHT_OPTIONS, 0);
 // alcuni browser ripristinano lo stato dopo un ricaricamento).
 // Codice eseguito una volta sola, al caricamento.
 setEmptyState();
+
+// Funzionamento offline: il service worker conserva i file dell'app nel browser.
+// Fallisce, senza conseguenze, se la pagina è aperta come file locale (file://).
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
 // "Sfoglia…" e "Cambia selezione" aprono il selettore di file nascosto
 browseBtn.addEventListener('click', () => fileInput.click());
@@ -176,8 +185,21 @@ function handleFiles(files) {
     // Nessun file valido (solo file non ammessi): resta in stato VUOTO
     if (valid.length === 0) return;
 
-    items = valid.map(file => ({ file: file, card: createCard(file), status: { kind: '', key: '', values: {} } }));
-    for (const item of items) grid.appendChild(item.card);
+    items = valid.map(file => ({
+        file: file,
+        card: createCard(file),
+        status: { kind: '', key: '', values: {} },
+        metadata: inspectMetadata(file),   // Promise: la lettura dei metadati continua in sottofondo
+        metadataInfo: null,                // risultato della lettura, quando è pronto
+        cleaned: false                     // true se l'ultima elaborazione ha tolto dei metadati
+    }));
+    for (const item of items) {
+        grid.appendChild(item.card);
+        item.metadata.then(function (info) {
+            item.metadataInfo = info;
+            renderMetadataTag(item);
+        });
+    }
 
     view.selection = { count: valid.length, bytes: valid.reduce((sum, file) => sum + file.size, 0) };
     renderSelection();
@@ -199,6 +221,7 @@ async function convertAll() {
     let skipped = 0;
     let failed = 0;
     let overLimit = 0;
+    let cleaned = 0;                    // immagini a cui sono stati tolti dei metadati
 
     // Stato IN CORSO: niente doppi clic né cambi di opzioni durante l'elaborazione
     clearResults();
@@ -209,7 +232,8 @@ async function convertAll() {
         showProgress(index, items.length);
         setStatus(item, 'run', 'statusRun');
         try {
-            const result = await processImage(item.file, format, maxSide, maxBytes);
+            const info = await item.metadata;
+            const result = await processImage(item.file, format, maxSide, maxBytes, info);
             if (!result) {
                 if (item.file.type === format && !maxSide && !maxBytes) {
                     setStatus(item, 'skip', 'statusSkipSame', { format: FORMAT_LABELS[format] });
@@ -224,7 +248,16 @@ async function convertAll() {
             bytesBefore += item.file.size;
             const values = { name: name, width: result.width, height: result.height,
                 bytes: result.blob.size, before: item.file.size, limit: maxBytes };
-            if (result.fits) {
+            // Ogni file prodotto è senza metadati: ricodificato dal canvas, che non li copia,
+            // oppure ripulito direttamente nei byte (result.lossless)
+            if (info.hasMetadata || !info.parsed) {
+                item.cleaned = true;
+                cleaned++;
+                renderMetadataTag(item);
+            }
+            if (result.lossless) {
+                setStatus(item, 'done', 'statusClean', values);
+            } else if (result.fits) {
                 setStatus(item, 'done', 'statusDone', values);
             } else {
                 setStatus(item, 'warn', 'statusOver', values);
@@ -241,7 +274,7 @@ async function convertAll() {
     view.summary = {
         converted: converted.length, format: FORMAT_LABELS[format], before: bytesBefore,
         after: converted.reduce((sum, file) => sum + file.blob.size, 0),
-        skipped: skipped, overLimit: overLimit, failed: failed, limit: maxBytes
+        skipped: skipped, overLimit: overLimit, failed: failed, limit: maxBytes, cleaned: cleaned
     };
     renderSummary();
 
@@ -331,6 +364,11 @@ function createCard(file) {
     const meta = document.createElement('div');
     meta.className = 'file-meta text-muted';
 
+    // Avviso sui metadati dell'originale (posizione GPS, EXIF), poi "Metadati rimossi"
+    const metadataTag = document.createElement('div');
+    metadataTag.className = 'metadata-tag';
+    metadataTag.hidden = true;
+
     const status = document.createElement('div');
     status.className = 'status';
 
@@ -347,7 +385,7 @@ function createCard(file) {
     link.append(icon('download', 13), linkText);
     link.hidden = true;
 
-    card.append(img, name, meta, status, bar, link);
+    card.append(img, name, meta, metadataTag, status, bar, link);
     renderMeta(card, file);
     return card;
 }
@@ -359,6 +397,27 @@ function createCard(file) {
  */
 function renderMeta(card, file) {
     card.querySelector('.file-meta').textContent = `${FORMAT_LABELS[file.type]} · ${formatBytes(file.size)}`;
+}
+
+/**
+ * Mostra nella scheda cosa si sa dei metadati dell'immagine: "Contiene la posizione GPS",
+ * "Contiene metadati" oppure, dopo l'elaborazione, "Metadati rimossi".
+ * @param {{card: HTMLLIElement, metadataInfo: object, cleaned: boolean}} item
+ */
+function renderMetadataTag(item) {
+    const tag = item.card.querySelector('.metadata-tag');
+    const info = item.metadataInfo;
+    const kind = item.cleaned ? 'removed'
+        : info && info.hasGps ? 'gps'
+        : info && info.hasMetadata ? 'metadata'
+        : '';
+    tag.hidden = !kind;
+    tag.className = kind ? 'metadata-tag ' + kind : 'metadata-tag';
+    tag.replaceChildren();
+    if (!kind) return;
+    const iconName = { removed: 'shield', gps: 'pin', metadata: 'info' }[kind];
+    const key = { removed: 'tagRemoved', gps: 'tagGps', metadata: 'tagMetadata' }[kind];
+    tag.append(icon(iconName, 13), t(key));
 }
 
 /**
@@ -382,6 +441,8 @@ function showCardDownload(item, blob, name) {
 function clearResults() {
     for (const item of items) {
         setStatus(item, '', '');
+        item.cleaned = false;
+        renderMetadataTag(item);
         item.card.querySelector('.card-download').hidden = true;
         if (item.downloadUrl) URL.revokeObjectURL(item.downloadUrl);
         item.downloadUrl = null;
@@ -493,6 +554,7 @@ function refreshTexts() {
     renderRejected();
     for (const item of items) {
         renderMeta(item.card, item.file);
+        renderMetadataTag(item);
         renderStatus(item);
     }
 }
@@ -593,19 +655,27 @@ function fillFormatOptions(sourceTypes) {
  * @param {string} format - tipo MIME di destinazione
  * @param {number} maxSide - lato lungo massimo in pixel (0 = nessun limite)
  * @param {number} maxBytes - peso massimo in byte (0 = nessun limite)
- * @returns {Promise<{blob: Blob, width: number, height: number, fits: boolean}|null>}
- *   il risultato (fits = false se il peso massimo non è raggiungibile),
- *   oppure null se l'immagine rispetta già tutto e non serve ricodificarla
+ * @param {{hasMetadata: boolean, parsed: boolean, orientation: number}} info - metadati dell'originale
+ * @returns {Promise<{blob: Blob, width: number, height: number, fits: boolean, lossless: boolean}|null>}
+ *   il risultato (fits = false se il peso massimo non è raggiungibile; lossless = true se
+ *   sono stati tolti solo i metadati, senza ricodificare), oppure null se l'immagine
+ *   rispetta già tutto, non ha metadati e non serve toccarla
  */
-async function processImage(file, format, maxSide, maxBytes) {
+async function processImage(file, format, maxSide, maxBytes, info) {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
     try {
         const longSide = Math.max(bitmap.width, bitmap.height);
         let scale = maxSide > 0 ? Math.min(1, maxSide / longSide) : 1;
 
         // Stesso formato, nessun ridimensionamento e peso già nei limiti: ricodificare
-        // peggiorerebbe solo la qualità
-        if (format === file.type && scale === 1 && (!maxBytes || file.size <= maxBytes)) return null;
+        // peggiorerebbe solo la qualità. Se ci sono metadati, si tolgono direttamente dai byte.
+        if (format === file.type && scale === 1 && (!maxBytes || file.size <= maxBytes)) {
+            if (info.parsed && !info.hasMetadata) return null;
+            const clean = await stripMetadata(file, info);
+            if (clean) return { blob: clean, width: bitmap.width, height: bitmap.height, fits: true, lossless: true };
+            // Non si può fare senza ricodifica (es. foto ruotata dall'EXIF): si prosegue
+            // con il canvas, che applica la rotazione ai pixel e non copia i metadati
+        }
 
         let result = null;
         while (true) {
@@ -613,7 +683,7 @@ async function processImage(file, format, maxSide, maxBytes) {
             const height = Math.max(1, Math.round(bitmap.height * scale));
             const canvas = drawImage(bitmap, width, height, format);
             const blob = maxBytes ? await encodeWithin(canvas, format, maxBytes) : await encode(canvas, format, DEFAULT_QUALITY);
-            result = { blob: blob, width: width, height: height, fits: !maxBytes || blob.size <= maxBytes };
+            result = { blob: blob, width: width, height: height, fits: !maxBytes || blob.size <= maxBytes, lossless: false };
             // Riuscito, oppure non ha più senso rimpicciolire: ci si ferma
             if (result.fits || Math.max(width, height) <= 64) return result;
             scale *= SHRINK_STEP;

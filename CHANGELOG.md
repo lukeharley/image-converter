@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5] - 2026-10-11
+
+### Aggiunto
+
+- Rimozione dei metadati: EXIF (modello, data, **posizione GPS**), XMP, IPTC, commenti e testi incorporati
+  - Ogni scheda indica se l'originale contiene la posizione GPS o altri metadati, e poi "Metadati rimossi"
+  - Scegliendo lo stesso formato senza limiti, JPG, PNG e WebP vengono ripuliti direttamente nei byte, **senza ricodifica**: pixel identici, nessuna perdita di qualità
+  - Le foto ruotate dall'EXIF vengono ricodificate applicando la rotazione ai pixel, così restano dritte
+  - Dai JPG vengono tolte anche le immagini aggiuntive in coda (anteprime, mappe HDR), che possono contenere metadati propri
+  - Il riepilogo indica a quante immagini sono stati tolti i metadati
+- Funzionamento offline e installazione come app (PWA): manifest, icone e service worker che conserva i file dell'app nel browser
+
+### Modificato
+
+- Le immagini nello stesso formato senza metadati vengono saltate ("Già in JPG e senza metadati")
+- Content Security Policy aggiornata per manifest e service worker
+
 ## [0.4] - 2026-10-11
 
 ### Aggiunto

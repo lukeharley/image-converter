@@ -6,9 +6,14 @@
     <!-- Content Security Policy: il browser può caricare solo file di questo sito e non può
          contattare nessun server. Così "le immagini non escono dal dispositivo" non è solo una
          promessa: qualunque richiesta esterna verrebbe bloccata (e segnalata in console). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
     <title>PIC – Private Image Converter</title>
-    <meta name="description" content="Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche più file insieme. Le immagini non vengono mai caricate online.">
+    <meta name="description" content="Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche offline e più file insieme. Toglie la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.">
+    <!-- App installabile (PWA): nome, icone e colori per la schermata home -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#5980a6">
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="stylesheet" href="industry.css"/>
     <link rel="stylesheet" href="style.css"/>
   </head>
@@ -26,7 +31,7 @@
     <main>
       <div>
         <h1 data-i18n="heading">Converti le tue immagini</h1>
-        <p class="text-muted" id="intro" data-i18n="intro">Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.</p>
+        <p class="text-muted" id="intro" data-i18n="intro">Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.</p>
       </div>
 
       <!-- Il selettore nativo resta nascosto: lo aprono "Sfoglia…" e "Cambia selezione" -->
@@ -90,6 +95,7 @@
 
     <script src="i18n.js"></script>
     <script src="zip.js"></script>
+    <script src="metadata.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
