@@ -1,6 +1,6 @@
-Prova l'app: https://image-converter.dataentry291.workers.dev/
-
 # image-converter
+
+🌐 **[Prova l'app](https://image-converter.dataentry291.workers.dev/)**
 
 Applicazione web gratuita che permette di convertire, comprimere e ridimensionare immagini direttamente dal browser.
 
@@ -8,7 +8,7 @@ Applicazione web gratuita che permette di convertire, comprimere e ridimensionar
 
 ### Funzionali
 
-L'applicazione deve poter convertire una sola immagine da JPG a PNG e viceversa.
+L'applicazione deve poter convertire una sola immagine tra i formati JPG, PNG e WebP.
 
 ### Non funzionali
 
@@ -19,6 +19,6 @@ L'applicazione deve poter convertire una sola immagine da JPG a PNG e viceversa.
 ## Roadmap
 
 - v0.1: una immagine, JPG <> PNG ✅
-- v0.2: piu' formati (WebP, ...)
+- v0.2: piu' formati (WebP) ✅
 - v0.3: piu' immagini insieme
 - v0.4: compressione e ridimensionamento

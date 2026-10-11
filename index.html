@@ -13,10 +13,12 @@
   </header>
 
   <main>
-    <input type="file" id="file-input" accept="image/jpeg, image/png" />
+    <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp" />
     <p id="message"></p>
     <img id="preview" alt="Anteprima dell'immagine scelta" hidden/>
     
+    <label for="format">Converti in:</label>
+    <select id="format" disabled></select>
     <button id="convert-btn" disabled>Converti</button>
     <a id="download-link" hidden>Scarica</a>
   </main>
