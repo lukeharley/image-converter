@@ -1,4 +1,5 @@
-// Lettura e rimozione dei metadati (EXIF, XMP, IPTC, commenti) da JPG, PNG e WebP.
+// Lettura e rimozione dei metadati (EXIF, XMP, IPTC, commenti) da JPG, PNG e WebP;
+// per le foto HEIC solo la lettura, perché vengono sempre convertite (e il canvas non copia i metadati).
 // I metadati vengono tolti lavorando direttamente sui byte del file, senza ricodificare
 // l'immagine: i pixel restano identici e la qualità non cambia.
 // Restano solo le informazioni necessarie a mostrare bene l'immagine (es. il profilo colore).
@@ -244,6 +245,16 @@ function metadataBlocks(bytes, type) {
             const kind = chunk.type === 'eXIf' ? 'exif' : containsText(data, 'XML:com.adobe.xmp') ? 'xmp' : 'other';
             blocks.push({ kind: kind, data: data });
         }
+    } else if (type === 'image/heic' || type === 'image/heif') {
+        // Nell'HEIC l'EXIF è un "elemento" del contenitore, preceduto da "Exif\0\0" e seguito
+        // dall'intestazione TIFF ("MM" o "II"). L'HEIC non si riscrive (si converte sempre),
+        // quindi basta trovarlo per avvisare l'utente.
+        for (const tiff of ['MM\0*', 'II*\0']) {
+            const start = indexOfText(bytes, 'Exif\0\0' + tiff);
+            if (start >= 0) blocks.push({ kind: 'exif', data: bytes.subarray(start + 6) });
+        }
+        const xmp = indexOfText(bytes, '<x:xmpmeta');
+        if (xmp >= 0) blocks.push({ kind: 'xmp', data: bytes.subarray(xmp, Math.min(bytes.length, xmp + 65536)) });
     } else if (type === 'image/webp') {
         for (const chunk of webpChunks(bytes)) {
             const data = bytes.subarray(chunk.dataStart, chunk.dataEnd);
@@ -300,6 +311,20 @@ function startsWith(bytes, offset, text) {
         if (bytes[offset + i] !== text.charCodeAt(i)) return false;
     }
     return true;
+}
+
+/**
+ * Posizione della prima occorrenza di un testo in una sequenza di byte, -1 se non c'è.
+ * @param {Uint8Array} bytes
+ * @param {string} text - testo ASCII (un carattere = un byte)
+ * @returns {number}
+ */
+function indexOfText(bytes, text) {
+    const first = text.charCodeAt(0);
+    for (let i = bytes.indexOf(first); i >= 0; i = bytes.indexOf(first, i + 1)) {
+        if (startsWith(bytes, i, text)) return i;
+    }
+    return -1;
 }
 
 /**

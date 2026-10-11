@@ -2,15 +2,15 @@
 
 🌐 **[Prova l'app](https://image-converter.dataentry291.workers.dev/)**
 
-Il convertitore di immagini privato: converte, ridimensiona e comprime immagini direttamente nel browser, anche più file insieme e anche offline. Toglie dalle foto la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.
+Il convertitore di immagini privato: converte, ridimensiona e comprime immagini (anche le foto iPhone in HEIC) direttamente nel browser, anche più file insieme e anche offline. Toglie dalle foto la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.
 
-*Private image converter: convert, resize and compress images right in your browser, even many files at once and even offline. Removes GPS location and other metadata. Your images are never uploaded.*
+*Private image converter: convert, resize and compress images (iPhone HEIC photos too) right in your browser, even many files at once and even offline. Removes GPS location and other metadata. Your images are never uploaded.*
 
 ## Requisiti
 
 ### Funzionali
 
-- Convertire una o più immagini tra i formati JPG, PNG e WebP
+- Convertire una o più immagini tra i formati JPG, PNG e WebP, e convertire le foto iPhone (HEIC/HEIF) in questi formati
 - Ridimensionare le immagini entro un lato lungo massimo, senza mai ingrandirle
 - Comprimere le immagini entro un peso massimo (es. per moduli e portali che accettano file fino a 1 MB)
 - Scaricare i risultati singolarmente o in un unico archivio ZIP
@@ -31,9 +31,17 @@ Il convertitore di immagini privato: converte, ridimensiona e comprime immagini 
 - v0.3: piu' immagini insieme, download ZIP ✅
 - v0.4: compressione e ridimensionamento ✅
 - v0.5: rimozione esplicita dei metadati (EXIF, posizione GPS) e funzionamento offline (PWA) ✅
-- v0.6: conversione delle foto iPhone (HEIC → JPG)
+- v0.6: conversione delle foto iPhone (HEIC → JPG) ✅
 
 ## Note per i rilasci
 
 - A ogni nuova versione va aggiornata la costante `CACHE` in `sw.js` (es. `pic-v0.6`): così i browser che hanno installato l'app scaricano i file nuovi e cancellano quelli vecchi.
 - Ogni file nuovo dell'app va aggiunto anche all'elenco `FILES` di `sw.js`, altrimenti offline non sarà disponibile.
+- Eccezione voluta: il decoder HEIC (`vendor/libheif/`, 2 MB) non è in `FILES`, per non farlo scaricare a chi non lo usa. Viene salvato alla prima foto HEIC aperta online; da quel momento funziona anche offline.
+
+## Componenti di terze parti
+
+| Componente | Uso | Licenza |
+|---|---|---|
+| [libheif](https://github.com/strukturag/libheif) (build WebAssembly di [libheif-js](https://github.com/catdad-experiments/libheif-js)) | Decodifica delle foto HEIC/HEIF | LGPL 3.0, vedi `vendor/libheif/` |
+| [Barlow](https://github.com/jpt/barlow) | Font dell'interfaccia | SIL OFL 1.1, vedi `fonts/OFL.txt` |

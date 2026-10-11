@@ -237,6 +237,29 @@ h1 {
     background: repeating-conic-gradient(var(--color-neutral-200) 0% 25%, var(--color-bg) 0% 50%) 50% / 16px 16px;
 }
 
+/* Riquadro al posto della miniatura quando il browser non sa mostrare l'originale (es. HEIC) */
+.thumb-placeholder {
+    display: none;
+    height: 120px;
+    margin-bottom: 4px;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--color-divider);
+    font-family: var(--font-heading);
+    font-weight: var(--font-heading-weight);
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+
+.file-card.no-preview img {
+    display: none;
+}
+
+.file-card.no-preview .thumb-placeholder {
+    display: flex;
+}
+
 .file-name {
     font-size: 13px;
     font-weight: 500;

@@ -8,7 +8,7 @@
          promessa: qualunque richiesta esterna verrebbe bloccata (e segnalata in console). -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
     <title>PIC – Private Image Converter</title>
-    <meta name="description" content="Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche offline e più file insieme. Toglie la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.">
+    <meta name="description" content="Converti, ridimensiona e comprimi immagini JPG, PNG, WebP e foto iPhone (HEIC) direttamente nel browser, anche offline e più file insieme. Toglie la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.">
     <!-- App installabile (PWA): nome, icone e colori per la schermata home -->
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#5980a6">
@@ -31,11 +31,11 @@
     <main>
       <div>
         <h1 data-i18n="heading">Converti le tue immagini</h1>
-        <p class="text-muted" id="intro" data-i18n="intro">Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.</p>
+        <p class="text-muted" id="intro" data-i18n="intro">Converti, ridimensiona e comprimi JPG, PNG, WebP e foto iPhone (HEIC), anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.</p>
       </div>
 
       <!-- Il selettore nativo resta nascosto: lo aprono "Sfoglia…" e "Cambia selezione" -->
-      <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp" multiple hidden/>
+      <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp, image/heic, image/heif, .heic, .heif" multiple hidden/>
 
       <!-- Stato VUOTO: area di trascinamento -->
       <div id="dropzone" class="blueprint">
@@ -43,7 +43,7 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
         <div class="dropzone-title" data-i18n="dropTitle">Trascina qui le immagini</div>
         <button type="button" id="browse-btn" class="btn btn-secondary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-i18n="browse">Sfoglia…</span></button>
-        <div class="text-muted dropzone-hint" data-i18n="dropHint">Più file insieme · JPG, PNG, WebP</div>
+        <div class="text-muted dropzone-hint" data-i18n="dropHint">Più file insieme · JPG, PNG, WebP, HEIC</div>
       </div>
 
       <!-- Riepilogo della selezione (dallo stato PRONTO in poi) -->
