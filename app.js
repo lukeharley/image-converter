@@ -4,8 +4,8 @@ const message = document.getElementById('message');
 const preview = document.getElementById('preview');
 const convertBtn = document.getElementById('convert-btn');
 const downloadLink = document.getElementById('download-link');
-const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
-const FORMAT_LABELS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG'};
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const FORMAT_EXTENTIONS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG', 'image/webp' : 'WebP'};
 
 // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - 
 // alcuni browser ripristinano lo stato dopo un caricamento). 
@@ -104,4 +104,18 @@ convertBtn.addEventListener('click', function() {
  */
 function getTargetType(sourceType) {
     return sourceType === 'image/png' ? 'image/jpeg' : 'image/png';
+}
+
+/**
+ * Verifica se il browser sa creare immagini nel formato indicato. 
+ * Se il formato non è supportato, il browser produce un PNG senza segnalare errori:
+ * per questo controlliamo il tipo del risultato invece di fidarci. 
+ * @param {string} type - tipo MIME da verificare (es. 'image/webp')
+ * @returns {boolean} true se il formato è supportato in uscita
+ */
+function canEncode(type) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1; 
+    canvas.height = 1; 
+    return canvas.toDataURL(type).startsWith('data:' + type);
 }
