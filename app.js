@@ -1,10 +1,9 @@
-// Trova nella pagina HTML l'elemento con id "file-input"
+// Trova nella pagina HTML gli elementi tramite riferimenti (id)
 const fileInput = document.getElementById('file-input');
 const message = document.getElementById('message');
 const preview = document.getElementById('preview');
 const convertBtn = document.getElementById('convert-btn');
 const downloadLink = document.getElementById('download-link');
-const formatSelect = document.getElementById('format');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 
 // Quando il suo valore cambia ("change"), ovvero l'utente sceglie un file
@@ -52,7 +51,7 @@ convertBtn.addEventListener('click', function() {
 
     // Disegno l'anteprima sulla tela (pixel per pixel)
     const ctx = canvas.getContext('2d');
-    const format = formatSelect.value; 
+    const format = getTargetType(fileInput.files[0].type); 
     if (format === 'image/jpeg') {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -79,3 +78,7 @@ convertBtn.addEventListener('click', function() {
 
     }, format);
 });
+
+function getTargetType(sourceType) {
+    sourceType === '.png' ? '.jpg': '.png';
+}
