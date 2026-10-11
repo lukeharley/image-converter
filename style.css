@@ -34,3 +34,14 @@
 .card p {
     margin: 4px 0 0;
 }
+
+/* Link per scaricare la singola immagine convertita */
+.card-download {
+    display: inline-block;
+    margin-top: 4px;
+}
+
+/* Senza questa regola, "display: inline-block" renderebbe visibili anche i link con hidden */
+.card-download[hidden] {
+    display: none;
+}

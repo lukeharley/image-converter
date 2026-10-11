@@ -8,7 +8,7 @@ Applicazione web gratuita che permette di convertire, comprimere e ridimensionar
 
 ### Funzionali
 
-L'applicazione deve poter convertire una sola immagine tra i formati JPG, PNG e WebP.
+L'applicazione deve poter convertire una o più immagini tra i formati JPG, PNG e WebP, scaricando i risultati in un unico archivio ZIP.
 
 ### Non funzionali
 
@@ -20,5 +20,5 @@ L'applicazione deve poter convertire una sola immagine tra i formati JPG, PNG e 
 
 - v0.1: una immagine, JPG <> PNG ✅
 - v0.2: piu' formati (WebP) ✅
-- v0.3: piu' immagini insieme
+- v0.3: piu' immagini insieme, download ZIP ✅
 - v0.4: compressione e ridimensionamento

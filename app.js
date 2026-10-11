@@ -14,7 +14,8 @@ const FORMAT_EXTENSIONS = {'image/png': '.png', 'image/jpeg': '.jpg', 'image/web
 // Formati che questo browser sa creare.
 const OUTPUT_TYPES = ALLOWED_TYPES.filter(canEncode);
 
-// Immagini valide scelte dall'utente: per ognuna il file e la sua scheda nella griglia
+// Immagini valide scelte dall'utente: per ognuna il file, la sua scheda nella griglia
+// e (dopo la conversione) l'indirizzo temporaneo del file convertito
 let items = [];
 // Riepilogo della selezione, da rimostrare quando l'utente cambia formato
 let selectionMessage = '';
@@ -67,6 +68,7 @@ convertBtn.addEventListener('click', async function () {
     convertBtn.disabled = true;
     formatSelect.disabled = true;
     downloadLink.hidden = true;
+    clearResults();
 
     for (const item of items) {
         if (item.file.type === format) {
@@ -80,6 +82,7 @@ convertBtn.addEventListener('click', async function () {
             const name = uniqueName(baseName(item.file.name) + FORMAT_EXTENSIONS[format], usedNames);
             converted.push({ name: name, blob: blob });
             setStatus(item, `✅ ${name} · ${Math.round(blob.size / 1024)} KB`);
+            showCardDownload(item, blob, name);
         } catch (error) {
             setStatus(item, '❌ Conversione non riuscita');
             failed++;
@@ -90,12 +93,16 @@ convertBtn.addEventListener('click', async function () {
     if (skipped > 0) message.textContent += ` · ${plural(skipped, 'saltata', 'saltate')}`;
     if (failed > 0) message.textContent += ` · ❌ ${plural(failed, 'non riuscita', 'non riuscite')}`;
 
+    // Un solo file: si scarica direttamente. Più file: un unico ZIP.
     if (converted.length > 0) {
-        const zip = await createZip(converted);
+        const single = converted.length === 1;
+        const blob = single ? converted[0].blob : await createZip(converted);
         if (downloadLink.href) URL.revokeObjectURL(downloadLink.href);
-        downloadLink.href = URL.createObjectURL(zip);
-        downloadLink.download = 'immagini-convertite.zip';
-        downloadLink.textContent = `Scarica tutto (ZIP · ${Math.round(zip.size / 1024)} KB)`;
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = single ? converted[0].name : 'immagini-convertite.zip';
+        downloadLink.textContent = single
+            ? `Scarica ${converted[0].name} (${Math.round(blob.size / 1024)} KB)`
+            : `Scarica tutto (ZIP · ${Math.round(blob.size / 1024)} KB)`;
         downloadLink.hidden = false;
     }
 
@@ -105,10 +112,11 @@ convertBtn.addEventListener('click', async function () {
 });
 
 // GESTORE DI EVENTO 'change' della select: un nuovo formato rende vecchio lo ZIP precedente
+// e i file convertiti nelle singole schede
 formatSelect.addEventListener('change', function () {
     downloadLink.hidden = true;
     message.textContent = selectionMessage;
-    for (const item of items) setStatus(item, '');
+    clearResults();
 });
 
 /**
@@ -116,6 +124,7 @@ formatSelect.addEventListener('change', function () {
  * Libera anche la memoria occupata dalle miniature precedenti.
  */
 function setEmptyState() {
+    clearResults();
     for (const item of items) URL.revokeObjectURL(item.card.querySelector('img').src);
     items = [];
     grid.innerHTML = '';
@@ -144,8 +153,40 @@ function createCard(file) {
     const status = document.createElement('p');
     status.className = 'status';
 
-    card.append(img, info, status);
+    const link = document.createElement('a');
+    link.className = 'card-download';
+    link.textContent = '⬇️ Scarica';
+    link.hidden = true;
+
+    card.append(img, info, status, link);
     return card;
+}
+
+/**
+ * Mostra nella scheda il link per scaricare solo quell'immagine convertita.
+ * @param {{card: HTMLLIElement, downloadUrl: string}} item - immagine convertita
+ * @param {Blob} blob - file convertito
+ * @param {string} name - nome con cui scaricarlo
+ */
+function showCardDownload(item, blob, name) {
+    item.downloadUrl = URL.createObjectURL(blob);
+    const link = item.card.querySelector('.card-download');
+    link.href = item.downloadUrl;
+    link.download = name;
+    link.hidden = false;
+}
+
+/**
+ * Cancella i risultati della conversione precedente: stati, link delle schede
+ * e memoria occupata dai file convertiti.
+ */
+function clearResults() {
+    for (const item of items) {
+        setStatus(item, '');
+        item.card.querySelector('.card-download').hidden = true;
+        if (item.downloadUrl) URL.revokeObjectURL(item.downloadUrl);
+        item.downloadUrl = null;
+    }
 }
 
 /**
