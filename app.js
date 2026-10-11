@@ -2,6 +2,8 @@
 const fileInput = document.getElementById('file-input');
 const message = document.getElementById('message');
 const preview = document.getElementById('preview');
+const convertBtn = document.getElementById('convert-btn');
+const formatSelect = document.getElementById('format');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 
 // Quando il suo valore cambia ("change"), ovvero l'utente sceglie un file
@@ -13,6 +15,7 @@ fileInput.addEventListener('change', function () {
     if (!file) {
         message.textContent = '';
         preview.hidden = true; 
+        convertBtn.disabled = true;
         return;
     }
 
@@ -22,6 +25,7 @@ fileInput.addEventListener('change', function () {
         message.textContent = '❌ Formato non supportato. Scegli un JPG o PNG.';
         fileInput.value = '';
         preview.hidden = true; 
+        convertBtn.disabled = true;
         return;
     }
     
@@ -29,4 +33,25 @@ fileInput.addEventListener('change', function () {
     message.textContent = `✅ ${file.name} · ${sizeKB} KB`;
     preview.src = URL.createObjectURL(file); 
     preview.hidden = false; 
+    convertBtn.disabled = false;
 }); 
+
+convertBtn.addEventListener('click', function() {
+    // Creo una "tela" grande quanto l'immagine originale
+    const canvas = document.createElement('canvas');
+    canvas.width = preview.naturalWidth; 
+    canvas.height = preview.naturalHeight; 
+
+    // Disegno l'anteprima sulla tela (pixel per pixel)
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(preview, 0, 0);
+
+    const format = formatSelect.value; 
+    canvas.toBlob(function (blob) {
+        const sizeKB = Math.round(blob.size / 1024);
+        message.textContent = `✅ Conversione completata · nuovo peso: ${sizeKB} KB`;
+    }, format);
+
+
+
+});
