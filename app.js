@@ -3,6 +3,7 @@ const fileInput = document.getElementById('file-input');
 const message = document.getElementById('message');
 const preview = document.getElementById('preview');
 const convertBtn = document.getElementById('convert-btn');
+const downloadLink = document.getElementById('download-link');
 const formatSelect = document.getElementById('format');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 
@@ -16,6 +17,7 @@ fileInput.addEventListener('change', function () {
         message.textContent = '';
         preview.hidden = true; 
         convertBtn.disabled = true;
+        downloadLink.hidden = true; 
         return;
     }
 
@@ -26,6 +28,7 @@ fileInput.addEventListener('change', function () {
         fileInput.value = '';
         preview.hidden = true; 
         convertBtn.disabled = true;
+        downloadLink.hidden = true; 
         return;
     }
     
@@ -35,7 +38,7 @@ fileInput.addEventListener('change', function () {
     if (preview.src) URL.revokeObjectURL(preview.src);
     preview.src = URL.createObjectURL(file); 
     preview.hidden = false; 
-    convertBtn.disabled = false;
+    preview.onload = function () { convertBtn.disabled = false; }; 
 }); 
 
 convertBtn.addEventListener('click', function() {
@@ -46,14 +49,25 @@ convertBtn.addEventListener('click', function() {
 
     // Disegno l'anteprima sulla tela (pixel per pixel)
     const ctx = canvas.getContext('2d');
+    const format = formatSelect.value; 
+    if (format === 'image/jpeg') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     ctx.drawImage(preview, 0, 0);
 
-    const format = formatSelect.value; 
     canvas.toBlob(function (blob) {
+        if (!blob) {
+            message.textContent = '❌ Conversione non riuscita, riprova.'; 
+            return;
+        }
         const sizeKB = Math.round(blob.size / 1024);
         message.textContent = `✅ Conversione completata · nuovo peso: ${sizeKB} KB`;
+
+        if (downloadLink.href) URL.revokeObjectURL(downloadLink.href);
+        downloadLink.href = URL.createObjectURL(blob);  
+        const fileExtension = ;
+        downloadLink.download = `✅ ${file.name} · ${sizeKB} KB`;
+        downloadLink.hidden = false; 
     }, format);
-
-
-
 });
