@@ -1,8 +1,10 @@
-# image-converter
+# PIC – Private Image Converter
 
 🌐 **[Prova l'app](https://image-converter.dataentry291.workers.dev/)**
 
-Applicazione web gratuita che permette di convertire, comprimere e ridimensionare immagini direttamente dal browser.
+Il convertitore di immagini privato: converte, ridimensiona e comprime immagini direttamente nel browser, anche più file insieme. Le immagini non vengono mai caricate online.
+
+*Private image converter: convert, resize and compress images right in your browser, even many files at once. Your images are never uploaded.*
 
 ## Requisiti
 
@@ -12,6 +14,7 @@ Applicazione web gratuita che permette di convertire, comprimere e ridimensionar
 - Ridimensionare le immagini entro un lato lungo massimo, senza mai ingrandirle
 - Comprimere le immagini entro un peso massimo (es. per moduli e portali che accettano file fino a 1 MB)
 - Scaricare i risultati singolarmente o in un unico archivio ZIP
+- Interfaccia in italiano e in inglese, con cambio di lingua in qualsiasi momento
 
 ### Non funzionali
 

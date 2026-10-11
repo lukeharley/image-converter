@@ -20,13 +20,23 @@ body {
     gap: 6px;
 }
 
-/* Testo del badge: versione breve sugli schermi stretti, completa da 640px in su */
-.tag-long {
+/* Pulsante della lingua: compatto, mostra la sigla dell'altra lingua */
+.lang-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+}
+
+/* Testo del badge e nome completo dell'app: versione breve sugli schermi stretti,
+   completa da 640px in su */
+.tag-long,
+.brand-full {
     display: none;
 }
 
 @media (min-width: 640px) {
-    .tag-long {
+    .tag-long,
+    .brand-full {
         display: inline;
     }
 

@@ -1,4 +1,5 @@
 // Riferimenti agli elementi della pagina
+const langBtn = document.getElementById('lang-btn');
 const fileInput = document.getElementById('file-input');
 const dropzone = document.getElementById('dropzone');
 const browseBtn = document.getElementById('browse-btn');
@@ -39,7 +40,7 @@ const DEFAULT_FORMAT = 'image/webp';
 
 // Lato lungo massimo in pixel (0 = dimensioni originali). Le immagini non vengono mai ingrandite.
 const SIZE_OPTIONS = [
-    { value: 0, label: 'Originale' },
+    { value: 0, labelKey: 'sizeOriginal' },
     { value: 2560, label: '2560' },
     { value: 1920, label: '1920' },
     { value: 1280, label: '1280' },
@@ -48,7 +49,7 @@ const SIZE_OPTIONS = [
 // Peso massimo in byte (0 = nessun limite). Unità decimali (1 MB = 1.000.000 byte):
 // sono più severe di quelle binarie (1 MB = 1.048.576 byte), quindi rispettano entrambe.
 const WEIGHT_OPTIONS = [
-    { value: 0, label: 'Nessuno' },
+    { value: 0, labelKey: 'weightNone' },
     { value: 2000000, label: '2 MB' },
     { value: 1000000, label: '1 MB' },
     { value: 500000, label: '500 KB' },
@@ -79,6 +80,18 @@ let phase = 'empty';
 // Quanti trascinamenti sono "dentro" la pagina: dragenter e dragleave arrivano
 // anche passando da un elemento figlio all'altro, quindi non basta un booleano
 let dragDepth = 0;
+// Dati degli ultimi testi mostrati (riepiloghi, avanzamento, download): servono a
+// riscriverli nella nuova lingua quando l'utente la cambia, senza rifare la conversione
+const view = { selection: null, progress: null, summary: null, download: null, rejected: [], canDownload: false };
+
+// Testi fissi della pagina nella lingua iniziale
+translatePage();
+
+// Pulsante della lingua: passa all'altra lingua e riscrive tutti i testi
+langBtn.addEventListener('click', function () {
+    setLanguage(language === 'it' ? 'en' : 'it');
+    refreshTexts();
+});
 
 // Controlli di dimensioni e peso: creati una volta sola, la scelta resta tra una selezione e l'altra
 fillSegment(sizeGroup, 'size', SIZE_OPTIONS, 0);
@@ -163,11 +176,11 @@ function handleFiles(files) {
     // Nessun file valido (solo file non ammessi): resta in stato VUOTO
     if (valid.length === 0) return;
 
-    items = valid.map(file => ({ file: file, card: createCard(file) }));
+    items = valid.map(file => ({ file: file, card: createCard(file), status: { kind: '', key: '', values: {} } }));
     for (const item of items) grid.appendChild(item.card);
 
-    const totalBytes = valid.reduce((sum, file) => sum + file.size, 0);
-    selectionLabel.textContent = `${plural(valid.length, 'immagine', 'immagini')} · ${formatBytes(totalBytes)}`;
+    view.selection = { count: valid.length, bytes: valid.reduce((sum, file) => sum + file.size, 0) };
+    renderSelection();
 
     fillFormatOptions(new Set(valid.map(file => file.type)));
     setPhase('ready');
@@ -190,46 +203,47 @@ async function convertAll() {
     // Stato IN CORSO: niente doppi clic né cambi di opzioni durante l'elaborazione
     clearResults();
     setPhase('run');
-    for (const item of items) setStatus(item, 'wait', 'In attesa');
+    for (const item of items) setStatus(item, 'wait', 'statusWait');
 
     for (const [index, item] of items.entries()) {
         showProgress(index, items.length);
-        setStatus(item, 'run', 'Elaborazione…');
+        setStatus(item, 'run', 'statusRun');
         try {
             const result = await processImage(item.file, format, maxSide, maxBytes);
             if (!result) {
-                setStatus(item, 'skip', item.file.type === format && !maxSide && !maxBytes
-                    ? `Già in ${FORMAT_LABELS[format]}, saltata`
-                    : 'Già entro i limiti, saltata');
+                if (item.file.type === format && !maxSide && !maxBytes) {
+                    setStatus(item, 'skip', 'statusSkipSame', { format: FORMAT_LABELS[format] });
+                } else {
+                    setStatus(item, 'skip', 'statusSkipLimits');
+                }
                 skipped++;
                 continue;
             }
             const name = uniqueName(baseName(item.file.name) + FORMAT_EXTENSIONS[format], usedNames);
             converted.push({ name: name, blob: result.blob });
             bytesBefore += item.file.size;
-            const text = `${name} · ${result.width}×${result.height} · ${formatBytes(result.blob.size)}`
-                + savingText(item.file.size, result.blob.size);
+            const values = { name: name, width: result.width, height: result.height,
+                bytes: result.blob.size, before: item.file.size, limit: maxBytes };
             if (result.fits) {
-                setStatus(item, 'done', text);
+                setStatus(item, 'done', 'statusDone', values);
             } else {
-                setStatus(item, 'warn', `${text} · oltre ${formatLimit(maxBytes)}`);
+                setStatus(item, 'warn', 'statusOver', values);
                 overLimit++;
             }
             showCardDownload(item, result.blob, name);
         } catch (error) {
-            setStatus(item, 'fail', 'Elaborazione non riuscita');
+            setStatus(item, 'fail', 'statusFail');
             failed++;
         }
     }
     showProgress(items.length, items.length);
 
-    const bytesAfter = converted.reduce((sum, file) => sum + file.blob.size, 0);
-    let text = `${plural(converted.length, 'immagine pronta', 'immagini pronte')} in ${FORMAT_LABELS[format]}`;
-    if (converted.length > 0) text += ` · da ${formatBytes(bytesBefore)} a ${formatBytes(bytesAfter)}` + savingText(bytesBefore, bytesAfter);
-    if (skipped > 0) text += ` · ${plural(skipped, 'saltata', 'saltate')}`;
-    if (overLimit > 0) text += ` · ${overLimit} oltre ${formatLimit(maxBytes)}`;
-    if (failed > 0) text += ` · ${plural(failed, 'non riuscita', 'non riuscite')}`;
-    message.replaceChildren(icon(converted.length > 0 ? 'done' : 'fail', 16), text);
+    view.summary = {
+        converted: converted.length, format: FORMAT_LABELS[format], before: bytesBefore,
+        after: converted.reduce((sum, file) => sum + file.blob.size, 0),
+        skipped: skipped, overLimit: overLimit, failed: failed, limit: maxBytes
+    };
+    renderSummary();
 
     // Un solo file: si scarica direttamente. Più file: un unico ZIP.
     if (converted.length > 0) {
@@ -237,10 +251,8 @@ async function convertAll() {
         const blob = single ? converted[0].blob : await createZip(converted);
         if (downloadLink.href) URL.revokeObjectURL(downloadLink.href);
         downloadLink.href = URL.createObjectURL(blob);
-        downloadLink.download = single ? converted[0].name : 'immagini-convertite.zip';
-        downloadLabel.textContent = single
-            ? `Scarica ${converted[0].name}`
-            : `Scarica tutto (ZIP · ${formatBytes(blob.size)})`;
+        view.download = single ? { name: converted[0].name } : { bytes: blob.size };
+        renderDownload();
     }
 
     // Stato CONVERTITO: si può cambiare opzioni e riconvertire
@@ -255,6 +267,7 @@ async function convertAll() {
  */
 function setPhase(newPhase, canDownload = false) {
     phase = newPhase;
+    view.canDownload = canDownload;
     const locked = phase === 'empty' || phase === 'run';
 
     dropzone.hidden = phase !== 'empty';
@@ -268,7 +281,7 @@ function setPhase(newPhase, canDownload = false) {
 
     convertBtn.hidden = phase === 'done';
     convertBtn.disabled = phase !== 'ready';
-    convertLabel.textContent = phase === 'run' ? 'Elaborazione in corso…' : 'Converti tutto';
+    convertLabel.textContent = t(phase === 'run' ? 'convertRunning' : 'convertAll');
     convertArrow.hidden = phase !== 'ready';
     reconvertBtn.hidden = phase !== 'done';
     downloadLink.hidden = !(phase === 'done' && canDownload);
@@ -286,7 +299,8 @@ function setEmptyState() {
     for (const item of items) URL.revokeObjectURL(item.card.querySelector('img').src);
     items = [];
     grid.innerHTML = '';
-    selectionLabel.textContent = '';
+    view.selection = null;
+    renderSelection();
     showRejected([]);
     fillFormatOptions(new Set());
     setPhase('empty');
@@ -316,7 +330,6 @@ function createCard(file) {
 
     const meta = document.createElement('div');
     meta.className = 'file-meta text-muted';
-    meta.textContent = `${FORMAT_LABELS[file.type]} · ${formatBytes(file.size)}`;
 
     const status = document.createElement('div');
     status.className = 'status';
@@ -328,11 +341,24 @@ function createCard(file) {
 
     const link = document.createElement('a');
     link.className = 'card-download btn btn-ghost';
-    link.append(icon('download', 13), 'Scarica');
+    const linkText = document.createElement('span');
+    linkText.dataset.i18n = 'download';
+    linkText.textContent = t('download');
+    link.append(icon('download', 13), linkText);
     link.hidden = true;
 
     card.append(img, name, meta, status, bar, link);
+    renderMeta(card, file);
     return card;
+}
+
+/**
+ * Scrive formato e peso dell'immagine originale nella sua scheda ("JPG · 3,2 MB").
+ * @param {HTMLLIElement} card - scheda dell'immagine
+ * @param {File} file - immagine originale
+ */
+function renderMeta(card, file) {
+    card.querySelector('.file-meta').textContent = `${FORMAT_LABELS[file.type]} · ${formatBytes(file.size)}`;
 }
 
 /**
@@ -363,16 +389,28 @@ function clearResults() {
 }
 
 /**
- * Scrive lo stato della conversione nella scheda di un'immagine, con la sua icona.
- * @param {{card: HTMLLIElement}} item - immagine da aggiornare
+ * Imposta lo stato della conversione di un'immagine e lo mostra nella sua scheda.
+ * Lo stato viene ricordato (chiave del testo e dati), così si può riscrivere in un'altra lingua.
+ * @param {{card: HTMLLIElement, status: object}} item - immagine da aggiornare
  * @param {''|'wait'|'run'|'done'|'skip'|'warn'|'fail'} kind - tipo di stato ('' = nessuno)
- * @param {string} text - testo da mostrare
+ * @param {string} key - chiave del testo in TRANSLATIONS ('' = nessun testo)
+ * @param {object} [values] - dati da inserire nel testo
  */
-function setStatus(item, kind, text) {
+function setStatus(item, kind, key, values = {}) {
+    item.status = { kind: kind, key: key, values: values };
+    renderStatus(item);
+}
+
+/**
+ * Mostra nella scheda lo stato ricordato dell'immagine, con la sua icona.
+ * @param {{card: HTMLLIElement, status: object}} item - immagine da aggiornare
+ */
+function renderStatus(item) {
+    const { kind, key, values } = item.status;
     const status = item.card.querySelector('.status');
     status.className = kind ? 'status ' + kind : 'status';
     status.replaceChildren();
-    if (kind) status.append(icon(kind, 13), text);
+    if (kind) status.append(icon(kind, 13), t(key, values));
     item.card.querySelector('.card-bar').hidden = kind !== 'run';
 }
 
@@ -382,8 +420,9 @@ function setStatus(item, kind, text) {
  * @param {number} total - immagini da convertire
  */
 function showProgress(done, total) {
+    view.progress = { current: Math.min(done + 1, total), total: total };
+    renderProgress();
     const pct = total === 0 ? 100 : Math.round(done / total * 100);
-    progressLabel.textContent = `Elaborazione ${Math.min(done + 1, total)} di ${total}…`;
     progressPct.textContent = pct + '%';
     progressFill.style.width = pct + '%';
 }
@@ -393,10 +432,69 @@ function showProgress(done, total) {
  * @param {File[]} rejected - file non validi
  */
 function showRejected(rejected) {
-    rejectedBox.hidden = rejected.length === 0;
-    rejectedCount.textContent = plural(rejected.length, 'file scartato', 'file scartati');
-    rejectedNames.textContent = (rejected.length === 1 ? 'non è' : 'non sono')
-        + ' JPG, PNG o WebP: ' + rejected.map(file => file.name).join(', ');
+    view.rejected = rejected.map(file => file.name);
+    renderRejected();
+}
+
+/**
+ * Scrive il riepilogo della selezione ("3 immagini · 4,2 MB"), vuoto se non c'è selezione.
+ */
+function renderSelection() {
+    selectionLabel.textContent = view.selection ? t('selection', view.selection) : '';
+}
+
+/**
+ * Scrive il testo della barra di avanzamento ("Elaborazione 2 di 3…").
+ */
+function renderProgress() {
+    progressLabel.textContent = view.progress ? t('progress', view.progress) : '';
+}
+
+/**
+ * Scrive l'esito della conversione, con l'icona di successo o di errore.
+ */
+function renderSummary() {
+    if (!view.summary) return;
+    message.replaceChildren(icon(view.summary.converted > 0 ? 'done' : 'fail', 16), t('summary', view.summary));
+}
+
+/**
+ * Scrive il testo e il nome del file del pulsante di download principale.
+ */
+function renderDownload() {
+    if (!view.download) return;
+    const single = Boolean(view.download.name);
+    downloadLink.download = single ? view.download.name : t('zipName');
+    downloadLabel.textContent = t(single ? 'downloadOne' : 'downloadAll', view.download);
+}
+
+/**
+ * Mostra (o nasconde, se non ce ne sono) l'avviso con i file scartati.
+ */
+function renderRejected() {
+    const count = view.rejected.length;
+    rejectedBox.hidden = count === 0;
+    rejectedCount.textContent = t('rejectedCount', { count: count });
+    rejectedNames.textContent = t('rejectedNames', { count: count, names: view.rejected.join(', ') });
+}
+
+/**
+ * Riscrive nella lingua attiva tutti i testi che dipendono dai dati: opzioni,
+ * pulsanti, riepiloghi, stati delle schede. I file convertiti e i link restano validi.
+ */
+function refreshTexts() {
+    fillSegment(sizeGroup, 'size', SIZE_OPTIONS, selectedValue(sizeGroup));
+    fillSegment(weightGroup, 'weight', WEIGHT_OPTIONS, selectedValue(weightGroup));
+    setPhase(phase, view.canDownload);   // riapplica lo stato ai pulsanti appena ricreati
+    renderSelection();
+    renderProgress();
+    renderSummary();
+    renderDownload();
+    renderRejected();
+    for (const item of items) {
+        renderMeta(item.card, item.file);
+        renderStatus(item);
+    }
 }
 
 /**
@@ -452,7 +550,8 @@ function selectedValue(group) {
  * Crea le opzioni di un controllo segmentato (un gruppo di pulsanti radio).
  * @param {HTMLElement} group - contenitore del controllo
  * @param {string} name - nome comune dei pulsanti radio
- * @param {{value: (string|number), label: string}[]} options - opzioni da mostrare
+ * @param {{value: (string|number), label: string, labelKey: string}[]} options - opzioni da mostrare
+ *   (labelKey al posto di label per i testi da tradurre)
  * @param {string|number} chosen - valore da selezionare
  */
 function fillSegment(group, name, options, chosen) {
@@ -465,7 +564,7 @@ function fillSegment(group, name, options, chosen) {
         input.name = name;
         input.value = option.value;
         input.checked = option.value === chosen;
-        label.append(input, option.label);
+        label.append(input, option.labelKey ? t(option.labelKey) : option.label);
         group.appendChild(label);
     }
 }
@@ -624,13 +723,23 @@ function uniqueName(name, usedNames) {
 }
 
 /**
- * Scrive un peso in modo leggibile ("850 KB", "3,2 MB").
+ * Scrive un peso in modo leggibile, con il separatore decimale della lingua ("3,2 MB" / "3.2 MB").
  * @param {number} bytes
  * @returns {string}
  */
 function formatBytes(bytes) {
     if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+    return `${formatNumber(bytes / 1024 / 1024, 1)} MB`;
+}
+
+/**
+ * Testo del risultato di un'immagine: nome, dimensioni, peso e risparmio
+ * ("foto.webp · 1920×1440 · 783 KB · −88%"). Uguale in tutte le lingue.
+ * @param {{name: string, width: number, height: number, bytes: number, before: number}} v
+ * @returns {string}
+ */
+function resultText(v) {
+    return `${v.name} · ${v.width}×${v.height} · ${formatBytes(v.bytes)}${savingText(v.before, v.bytes)}`;
 }
 
 /**
@@ -652,17 +761,6 @@ function formatLimit(bytes) {
 function savingText(before, after) {
     const saving = Math.round((1 - after / before) * 100);
     return saving > 0 ? ` · −${saving}%` : '';
-}
-
-/**
- * Scrive un numero seguito dalla parola al singolare o al plurale ("1 immagine", "3 immagini").
- * @param {number} n - quantità
- * @param {string} singular - parola al singolare
- * @param {string} pluralWord - parola al plurale
- * @returns {string}
- */
-function plural(n, singular, pluralWord) {
-    return `${n} ${n === 1 ? singular : pluralWord}`;
 }
 
 /**
