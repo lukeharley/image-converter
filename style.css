@@ -112,7 +112,8 @@ h1 {
     padding: var(--space-4);
 }
 
-#format-field.locked {
+/* Formato, dimensioni e peso: attenuati quando non si possono cambiare */
+.option-field.locked {
     opacity: 0.45;
 }
 
@@ -121,7 +122,13 @@ h1 {
     justify-content: center;
 }
 
-#format-field.locked .seg-opt {
+/* Dimensioni e peso hanno 5 opzioni: pulsanti più compatti per stare in uno schermo da 360px */
+#size .seg-opt,
+#weight .seg-opt {
+    padding: 7px 9px;
+}
+
+.option-field.locked .seg-opt {
     cursor: not-allowed;
 }
 
@@ -259,7 +266,9 @@ h1 {
     color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
-.status.fail {
+/* Non riuscita, oppure oltre il peso massimo: evidenziate senza introdurre nuovi colori */
+.status.fail,
+.status.warn {
     font-weight: 500;
 }
 

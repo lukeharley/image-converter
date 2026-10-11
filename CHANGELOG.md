@@ -1,6 +1,21 @@
 # Changelog
 
-## [Non rilasciato]
+## [0.4] - 2026-10-11
+
+### Aggiunto
+
+- Ridimensionamento: lato lungo massimo di 2560, 1920, 1280 o 800 pixel, mantenendo le proporzioni; le immagini più piccole non vengono mai ingrandite
+- Compressione con peso massimo di 2 MB, 1 MB, 500 KB o 200 KB: per JPG e WebP si cerca la qualità più alta che rientra nel limite, poi se serve si riducono i lati; per il PNG si riducono solo i lati
+- Ogni scheda mostra dimensioni finali, peso e risparmio rispetto all'originale; il riepilogo mostra il peso totale prima e dopo
+- Avviso nella scheda se un'immagine resta oltre il peso massimo
+
+### Modificato
+
+- Il formato di partenza si può scegliere anche come destinazione, per ridimensionare o comprimere senza convertire
+- Le immagini che rispettano già formato, dimensioni e peso vengono saltate senza essere ricodificate
+- Qualità di JPG e WebP fissata a 0,9 (prima dipendeva dal browser)
+
+## [0.3.1] - 2026-10-11
 
 ### Modificato
 

@@ -24,7 +24,7 @@
     <main>
       <div>
         <h1>Converti le tue immagini</h1>
-        <p class="text-muted" id="intro">JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.</p>
+        <p class="text-muted" id="intro">Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.</p>
       </div>
 
       <!-- Il selettore nativo resta nascosto: lo aprono "Sfoglia…" e "Cambia selezione" -->
@@ -48,9 +48,17 @@
 
       <div id="controls" class="blueprint">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-        <div class="field" id="format-field">
+        <div class="field option-field" id="format-field">
           <label id="format-label">Converti in</label>
           <div class="seg" id="format" role="radiogroup" aria-labelledby="format-label"></div>
+        </div>
+        <div class="field option-field" id="size-field">
+          <label id="size-label">Lato lungo massimo (px)</label>
+          <div class="seg" id="size" role="radiogroup" aria-labelledby="size-label"></div>
+        </div>
+        <div class="field option-field" id="weight-field">
+          <label id="weight-label">Peso massimo</label>
+          <div class="seg" id="weight" role="radiogroup" aria-labelledby="weight-label"></div>
         </div>
         <div id="actions">
           <button type="button" id="reconvert-btn" class="btn btn-secondary blueprint" hidden><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Riconverti</button>

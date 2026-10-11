@@ -7,6 +7,10 @@ const selectionLabel = document.getElementById('selection-label');
 const changeBtn = document.getElementById('change-btn');
 const formatField = document.getElementById('format-field');
 const formatGroup = document.getElementById('format');
+const sizeField = document.getElementById('size-field');
+const sizeGroup = document.getElementById('size');
+const weightField = document.getElementById('weight-field');
+const weightGroup = document.getElementById('weight');
 const convertBtn = document.getElementById('convert-btn');
 const convertLabel = document.getElementById('convert-label');
 const convertArrow = document.getElementById('convert-arrow');
@@ -33,6 +37,29 @@ const OUTPUT_TYPES = ALLOWED_TYPES.filter(canEncode);
 // Formato proposto quando non c'è ancora una scelta dell'utente
 const DEFAULT_FORMAT = 'image/webp';
 
+// Lato lungo massimo in pixel (0 = dimensioni originali). Le immagini non vengono mai ingrandite.
+const SIZE_OPTIONS = [
+    { value: 0, label: 'Originale' },
+    { value: 2560, label: '2560' },
+    { value: 1920, label: '1920' },
+    { value: 1280, label: '1280' },
+    { value: 800, label: '800' }
+];
+// Peso massimo in byte (0 = nessun limite). Unità decimali (1 MB = 1.000.000 byte):
+// sono più severe di quelle binarie (1 MB = 1.048.576 byte), quindi rispettano entrambe.
+const WEIGHT_OPTIONS = [
+    { value: 0, label: 'Nessuno' },
+    { value: 2000000, label: '2 MB' },
+    { value: 1000000, label: '1 MB' },
+    { value: 500000, label: '500 KB' },
+    { value: 200000, label: '200 KB' }
+];
+// Qualità di JPG e WebP: quella normale e la minima accettabile prima di ridurre i lati
+const DEFAULT_QUALITY = 0.9;
+const MIN_QUALITY = 0.5;
+// Se a qualità minima il file è ancora troppo pesante, i lati si riducono di questo fattore
+const SHRINK_STEP = 0.85;
+
 // Icone Lucide (tratto 1.5) usate nelle righe di stato
 const ICONS = {
     done: '<path d="M20 6 9 17l-5-5"></path>',
@@ -40,6 +67,7 @@ const ICONS = {
     wait: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
     skip: '<path d="M5 12h14"></path>',
     fail: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
+    warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>',
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line>'
 };
 
@@ -51,6 +79,10 @@ let phase = 'empty';
 // Quanti trascinamenti sono "dentro" la pagina: dragenter e dragleave arrivano
 // anche passando da un elemento figlio all'altro, quindi non basta un booleano
 let dragDepth = 0;
+
+// Controlli di dimensioni e peso: creati una volta sola, la scelta resta tra una selezione e l'altra
+fillSegment(sizeGroup, 'size', SIZE_OPTIONS, 0);
+fillSegment(weightGroup, 'weight', WEIGHT_OPTIONS, 0);
 
 // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML:
 // alcuni browser ripristinano lo stato dopo un ricaricamento).
@@ -106,14 +138,16 @@ document.addEventListener('drop', function (event) {
 convertBtn.addEventListener('click', convertAll);
 reconvertBtn.addEventListener('click', convertAll);
 
-// GESTORE DI EVENTO 'change' dei formati: un nuovo formato rende vecchio lo ZIP precedente
-// e i file convertiti nelle singole schede, quindi si torna allo stato PRONTO
-formatGroup.addEventListener('change', function () {
-    if (phase === 'done') {
-        clearResults();
-        setPhase('ready');
-    }
-});
+// GESTORE DI EVENTO 'change' di formato, dimensioni e peso: una nuova scelta rende vecchio
+// lo ZIP precedente e i file convertiti nelle singole schede, quindi si torna allo stato PRONTO
+for (const group of [formatGroup, sizeGroup, weightGroup]) {
+    group.addEventListener('change', function () {
+        if (phase === 'done') {
+            clearResults();
+            setPhase('ready');
+        }
+    });
+}
 
 /**
  * Separa i file validi da quelli non validi e costruisce la griglia di schede.
@@ -132,54 +166,68 @@ function handleFiles(files) {
     items = valid.map(file => ({ file: file, card: createCard(file) }));
     for (const item of items) grid.appendChild(item.card);
 
-    const totalKB = Math.round(valid.reduce((sum, file) => sum + file.size, 0) / 1024);
-    selectionLabel.textContent = `${plural(valid.length, 'immagine', 'immagini')} · ${totalKB} KB`;
+    const totalBytes = valid.reduce((sum, file) => sum + file.size, 0);
+    selectionLabel.textContent = `${plural(valid.length, 'immagine', 'immagini')} · ${formatBytes(totalBytes)}`;
 
     fillFormatOptions(new Set(valid.map(file => file.type)));
     setPhase('ready');
 }
 
 /**
- * Converte le immagini una alla volta e prepara lo ZIP con i risultati.
+ * Elabora le immagini una alla volta (formato, dimensioni, peso) e prepara lo ZIP con i risultati.
  */
 async function convertAll() {
     const format = selectedFormat();
+    const maxSide = selectedValue(sizeGroup);
+    const maxBytes = selectedValue(weightGroup);
     const converted = [];               // file da mettere nello ZIP: {name, blob}
     const usedNames = new Set();        // nomi già usati nello ZIP (CA-19)
-    const toConvert = items.filter(item => item.file.type !== format);
+    let bytesBefore = 0;                // peso degli originali delle immagini elaborate
     let skipped = 0;
     let failed = 0;
+    let overLimit = 0;
 
-    // Stato IN CORSO: niente doppi clic né cambi di formato durante la conversione
+    // Stato IN CORSO: niente doppi clic né cambi di opzioni durante l'elaborazione
     clearResults();
     setPhase('run');
-    for (const item of items) {
-        if (item.file.type === format) {
-            setStatus(item, 'skip', `Già in ${FORMAT_LABELS[format]}, saltata`);
-            skipped++;
-        } else {
-            setStatus(item, 'wait', 'In attesa');
-        }
-    }
+    for (const item of items) setStatus(item, 'wait', 'In attesa');
 
-    for (const [index, item] of toConvert.entries()) {
-        showProgress(index, toConvert.length);
-        setStatus(item, 'run', 'Conversione…');
+    for (const [index, item] of items.entries()) {
+        showProgress(index, items.length);
+        setStatus(item, 'run', 'Elaborazione…');
         try {
-            const blob = await convertImage(item.file, format);
+            const result = await processImage(item.file, format, maxSide, maxBytes);
+            if (!result) {
+                setStatus(item, 'skip', item.file.type === format && !maxSide && !maxBytes
+                    ? `Già in ${FORMAT_LABELS[format]}, saltata`
+                    : 'Già entro i limiti, saltata');
+                skipped++;
+                continue;
+            }
             const name = uniqueName(baseName(item.file.name) + FORMAT_EXTENSIONS[format], usedNames);
-            converted.push({ name: name, blob: blob });
-            setStatus(item, 'done', `${name} · ${Math.round(blob.size / 1024)} KB`);
-            showCardDownload(item, blob, name);
+            converted.push({ name: name, blob: result.blob });
+            bytesBefore += item.file.size;
+            const text = `${name} · ${result.width}×${result.height} · ${formatBytes(result.blob.size)}`
+                + savingText(item.file.size, result.blob.size);
+            if (result.fits) {
+                setStatus(item, 'done', text);
+            } else {
+                setStatus(item, 'warn', `${text} · oltre ${formatLimit(maxBytes)}`);
+                overLimit++;
+            }
+            showCardDownload(item, result.blob, name);
         } catch (error) {
-            setStatus(item, 'fail', 'Conversione non riuscita');
+            setStatus(item, 'fail', 'Elaborazione non riuscita');
             failed++;
         }
     }
-    showProgress(toConvert.length, toConvert.length);
+    showProgress(items.length, items.length);
 
-    let text = `${plural(converted.length, 'convertita', 'convertite')} in ${FORMAT_LABELS[format]}`;
+    const bytesAfter = converted.reduce((sum, file) => sum + file.blob.size, 0);
+    let text = `${plural(converted.length, 'immagine pronta', 'immagini pronte')} in ${FORMAT_LABELS[format]}`;
+    if (converted.length > 0) text += ` · da ${formatBytes(bytesBefore)} a ${formatBytes(bytesAfter)}` + savingText(bytesBefore, bytesAfter);
     if (skipped > 0) text += ` · ${plural(skipped, 'saltata', 'saltate')}`;
+    if (overLimit > 0) text += ` · ${overLimit} oltre ${formatLimit(maxBytes)}`;
     if (failed > 0) text += ` · ${plural(failed, 'non riuscita', 'non riuscite')}`;
     message.replaceChildren(icon(converted.length > 0 ? 'done' : 'fail', 16), text);
 
@@ -192,10 +240,10 @@ async function convertAll() {
         downloadLink.download = single ? converted[0].name : 'immagini-convertite.zip';
         downloadLabel.textContent = single
             ? `Scarica ${converted[0].name}`
-            : `Scarica tutto (ZIP · ${Math.round(blob.size / 1024)} KB)`;
+            : `Scarica tutto (ZIP · ${formatBytes(blob.size)})`;
     }
 
-    // Stato CONVERTITO: si può cambiare formato e riconvertire
+    // Stato CONVERTITO: si può cambiare opzioni e riconvertire
     setPhase('done', converted.length > 0);
 }
 
@@ -213,12 +261,14 @@ function setPhase(newPhase, canDownload = false) {
     selection.hidden = phase === 'empty';
     changeBtn.disabled = phase === 'run';
 
-    formatField.classList.toggle('locked', locked);
-    for (const input of formatGroup.querySelectorAll('input')) input.disabled = locked;
+    for (const field of [formatField, sizeField, weightField]) {
+        field.classList.toggle('locked', locked);
+        for (const input of field.querySelectorAll('input')) input.disabled = locked;
+    }
 
     convertBtn.hidden = phase === 'done';
     convertBtn.disabled = phase !== 'ready';
-    convertLabel.textContent = phase === 'run' ? 'Conversione in corso…' : 'Converti tutto';
+    convertLabel.textContent = phase === 'run' ? 'Elaborazione in corso…' : 'Converti tutto';
     convertArrow.hidden = phase !== 'ready';
     reconvertBtn.hidden = phase !== 'done';
     downloadLink.hidden = !(phase === 'done' && canDownload);
@@ -266,7 +316,7 @@ function createCard(file) {
 
     const meta = document.createElement('div');
     meta.className = 'file-meta text-muted';
-    meta.textContent = `${FORMAT_LABELS[file.type]} · ${Math.round(file.size / 1024)} KB`;
+    meta.textContent = `${FORMAT_LABELS[file.type]} · ${formatBytes(file.size)}`;
 
     const status = document.createElement('div');
     status.className = 'status';
@@ -315,7 +365,7 @@ function clearResults() {
 /**
  * Scrive lo stato della conversione nella scheda di un'immagine, con la sua icona.
  * @param {{card: HTMLLIElement}} item - immagine da aggiornare
- * @param {''|'wait'|'run'|'done'|'skip'|'fail'} kind - tipo di stato ('' = nessuno)
+ * @param {''|'wait'|'run'|'done'|'skip'|'warn'|'fail'} kind - tipo di stato ('' = nessuno)
  * @param {string} text - testo da mostrare
  */
 function setStatus(item, kind, text) {
@@ -333,7 +383,7 @@ function setStatus(item, kind, text) {
  */
 function showProgress(done, total) {
     const pct = total === 0 ? 100 : Math.round(done / total * 100);
-    progressLabel.textContent = `Conversione ${Math.min(done + 1, total)} di ${total}…`;
+    progressLabel.textContent = `Elaborazione ${Math.min(done + 1, total)} di ${total}…`;
     progressPct.textContent = pct + '%';
     progressFill.style.width = pct + '%';
 }
@@ -389,56 +439,160 @@ function selectedFormat() {
 }
 
 /**
- * Crea i pulsanti dei formati di destinazione possibili (controllo segmentato).
- * Se tutte le immagini hanno lo stesso formato, quel formato viene escluso;
- * con formati misti compaiono tutti (le immagini già nel formato scelto saranno saltate).
- * Resta scelto il formato precedente, se è ancora disponibile.
- * @param {Set<string>} sourceTypes - formati delle immagini scelte
+ * Restituisce il valore numerico scelto in un controllo segmentato (dimensioni o peso).
+ * @param {HTMLElement} group - il controllo segmentato
+ * @returns {number} 0 se non c'è limite
  */
-function fillFormatOptions(sourceTypes) {
-    const previous = selectedFormat() || DEFAULT_FORMAT;
-    const types = OUTPUT_TYPES.filter(type => !(sourceTypes.size === 1 && sourceTypes.has(type)));
-    const chosen = types.includes(previous) ? previous : types[0];
+function selectedValue(group) {
+    const checked = group.querySelector('input:checked');
+    return checked ? Number(checked.value) : 0;
+}
 
-    formatGroup.replaceChildren();
-    for (const type of types) {
-        const option = document.createElement('label');
-        option.className = 'seg-opt';
+/**
+ * Crea le opzioni di un controllo segmentato (un gruppo di pulsanti radio).
+ * @param {HTMLElement} group - contenitore del controllo
+ * @param {string} name - nome comune dei pulsanti radio
+ * @param {{value: (string|number), label: string}[]} options - opzioni da mostrare
+ * @param {string|number} chosen - valore da selezionare
+ */
+function fillSegment(group, name, options, chosen) {
+    group.replaceChildren();
+    for (const option of options) {
+        const label = document.createElement('label');
+        label.className = 'seg-opt';
         const input = document.createElement('input');
         input.type = 'radio';
-        input.name = 'format';
-        input.value = type;
-        input.checked = type === chosen;
-        option.append(input, FORMAT_LABELS[type]);
-        formatGroup.appendChild(option);
+        input.name = name;
+        input.value = option.value;
+        input.checked = option.value === chosen;
+        label.append(input, option.label);
+        group.appendChild(label);
     }
 }
 
 /**
- * Converte un'immagine nel formato indicato.
- * Decodifica il file, lo ridisegna su un canvas e lo ricodifica.
+ * Crea i pulsanti dei formati di destinazione (controllo segmentato).
+ * Compaiono tutti i formati che il browser sa creare: anche quello di partenza, perché
+ * dalla v0.4 si può ridimensionare o comprimere senza cambiare formato.
+ * Resta scelto il formato precedente; se però tutte le immagini sono già in quel formato,
+ * se ne propone un altro (scegliere lo stesso formato ha senso solo con dimensioni o peso).
+ * @param {Set<string>} sourceTypes - formati delle immagini scelte
+ */
+function fillFormatOptions(sourceTypes) {
+    const previous = selectedFormat() || DEFAULT_FORMAT;
+    const allSame = sourceTypes.size === 1 && sourceTypes.has(previous);
+    const chosen = allSame || !OUTPUT_TYPES.includes(previous)
+        ? OUTPUT_TYPES.find(type => !sourceTypes.has(type)) || OUTPUT_TYPES[0]
+        : previous;
+    fillSegment(formatGroup, 'format', OUTPUT_TYPES.map(type => ({ value: type, label: FORMAT_LABELS[type] })), chosen);
+}
+
+/**
+ * Elabora un'immagine: la porta nel formato indicato e, se richiesto, entro un lato
+ * massimo e un peso massimo.
  * @param {File} file - immagine originale
  * @param {string} format - tipo MIME di destinazione
- * @returns {Promise<Blob>} l'immagine convertita
+ * @param {number} maxSide - lato lungo massimo in pixel (0 = nessun limite)
+ * @param {number} maxBytes - peso massimo in byte (0 = nessun limite)
+ * @returns {Promise<{blob: Blob, width: number, height: number, fits: boolean}|null>}
+ *   il risultato (fits = false se il peso massimo non è raggiungibile),
+ *   oppure null se l'immagine rispetta già tutto e non serve ricodificarla
  */
-async function convertImage(file, format) {
+async function processImage(file, format, maxSide, maxBytes) {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    try {
+        const longSide = Math.max(bitmap.width, bitmap.height);
+        let scale = maxSide > 0 ? Math.min(1, maxSide / longSide) : 1;
+
+        // Stesso formato, nessun ridimensionamento e peso già nei limiti: ricodificare
+        // peggiorerebbe solo la qualità
+        if (format === file.type && scale === 1 && (!maxBytes || file.size <= maxBytes)) return null;
+
+        let result = null;
+        while (true) {
+            const width = Math.max(1, Math.round(bitmap.width * scale));
+            const height = Math.max(1, Math.round(bitmap.height * scale));
+            const canvas = drawImage(bitmap, width, height, format);
+            const blob = maxBytes ? await encodeWithin(canvas, format, maxBytes) : await encode(canvas, format, DEFAULT_QUALITY);
+            result = { blob: blob, width: width, height: height, fits: !maxBytes || blob.size <= maxBytes };
+            // Riuscito, oppure non ha più senso rimpicciolire: ci si ferma
+            if (result.fits || Math.max(width, height) <= 64) return result;
+            scale *= SHRINK_STEP;
+        }
+    } finally {
+        bitmap.close();   // libera subito la memoria dell'immagine decodificata
+    }
+}
+
+/**
+ * Disegna l'immagine su un canvas delle dimensioni indicate.
+ * @param {ImageBitmap} bitmap - immagine decodificata
+ * @param {number} width - larghezza finale
+ * @param {number} height - altezza finale
+ * @param {string} format - tipo MIME di destinazione
+ * @returns {HTMLCanvasElement}
+ */
+function drawImage(bitmap, width, height, format) {
     const canvas = document.createElement('canvas');
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     // Il JPG non supporta la trasparenza: senza sfondo bianco diventerebbe nera
     if (format === 'image/jpeg') {
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, width, height);
     }
-    ctx.drawImage(bitmap, 0, 0);
-    bitmap.close();   // libera subito la memoria dell'immagine decodificata
+    ctx.imageSmoothingQuality = 'high';   // rimpicciolimento più nitido
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    return canvas;
+}
 
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, format));
-    if (!blob) throw new Error('Conversione non riuscita');
+/**
+ * Codifica il canvas nel formato indicato.
+ * @param {HTMLCanvasElement} canvas
+ * @param {string} format - tipo MIME
+ * @param {number} quality - qualità da 0 a 1 (ignorata dal PNG, che non perde dati)
+ * @returns {Promise<Blob>}
+ */
+async function encode(canvas, format, quality) {
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
+    if (!blob) throw new Error('Codifica non riuscita');
     return blob;
+}
+
+/**
+ * Codifica il canvas con la qualità più alta che rientra nel peso massimo (ricerca binaria).
+ * Se nemmeno la qualità minima basta, restituisce il file più leggero ottenuto: sarà
+ * processImage a ridurre i lati e riprovare.
+ * @param {HTMLCanvasElement} canvas
+ * @param {string} format - tipo MIME
+ * @param {number} maxBytes - peso massimo in byte
+ * @returns {Promise<Blob>}
+ */
+async function encodeWithin(canvas, format, maxBytes) {
+    const first = await encode(canvas, format, DEFAULT_QUALITY);
+    // Il PNG non ha una qualità da abbassare; lo stesso se il file è già leggero abbastanza
+    if (format === 'image/png' || first.size <= maxBytes) return first;
+
+    const lightest = await encode(canvas, format, MIN_QUALITY);
+    if (lightest.size > maxBytes) return lightest;
+
+    // Il limite sta tra MIN_QUALITY e DEFAULT_QUALITY: 6 dimezzamenti danno una precisione di circa 0,006
+    let best = lightest;
+    let low = MIN_QUALITY;
+    let high = DEFAULT_QUALITY;
+    for (let step = 0; step < 6; step++) {
+        const middle = (low + high) / 2;
+        const blob = await encode(canvas, format, middle);
+        if (blob.size <= maxBytes) {
+            best = blob;
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    return best;
 }
 
 /**
@@ -467,6 +621,37 @@ function uniqueName(name, usedNames) {
     }
     usedNames.add(candidate.toLowerCase());
     return candidate;
+}
+
+/**
+ * Scrive un peso in modo leggibile ("850 KB", "3,2 MB").
+ * @param {number} bytes
+ * @returns {string}
+ */
+function formatBytes(bytes) {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+}
+
+/**
+ * Scrive un limite di peso come appare nei pulsanti ("1 MB", "500 KB").
+ * @param {number} bytes - uno dei valori di WEIGHT_OPTIONS
+ * @returns {string}
+ */
+function formatLimit(bytes) {
+    const option = WEIGHT_OPTIONS.find(o => o.value === bytes);
+    return option ? option.label : formatBytes(bytes);
+}
+
+/**
+ * Testo del risparmio rispetto all'originale (" · −72%"), vuoto se il file non è più leggero.
+ * @param {number} before - peso originale in byte
+ * @param {number} after - peso finale in byte
+ * @returns {string}
+ */
+function savingText(before, after) {
+    const saving = Math.round((1 - after / before) * 100);
+    return saving > 0 ? ` · −${saving}%` : '';
 }
 
 /**
