@@ -52,7 +52,7 @@ fileInput.addEventListener('change', function () {
     preview.hidden = false; 
     const targetType = getTargetType(file.type);
     convertBtn.textContent = 'Converti in ' + FORMAT_LABELS[targetType];
-    // CALLBACK: eseguita dal browser quando l'anteprima dell'immagine ha finito di caricars
+    // CALLBACK: eseguita dal browser quando l'anteprima dell'immagine ha finito di caricarsi
     preview.onload = function () { convertBtn.disabled = false; }; 
 }); 
 
@@ -100,8 +100,8 @@ convertBtn.addEventListener('click', function() {
  * Restituisce il formato in cui convertire l'immagine. 
  * Regola v0.1: il formato di destinazione è sempre "l'altro"
  * @param {string} sourceType - tipo MIME del file originale (es. 'image/png')
- * @returns {string} - tipo MIME di destinazione (es. 'image/jpeg')
-*/
+ * @returns {string} tipo MIME di destinazione (es. 'image/jpeg')
+ */
 function getTargetType(sourceType) {
     return sourceType === 'image/png' ? 'image/jpeg' : 'image/png';
 }
