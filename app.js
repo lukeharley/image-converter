@@ -5,7 +5,10 @@ const preview = document.getElementById('preview');
 const convertBtn = document.getElementById('convert-btn');
 const downloadLink = document.getElementById('download-link');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const FORMAT_EXTENTIONS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG', 'image/webp' : 'WebP'};
+// Nome leggibile di ogni formato, da mostrare all'utente.
+const FORMAT_LABELS = {'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WebP'};
+// Estensione del file per ogni formato.
+const FORMAT_EXTENSIONS = {'image/png' : 'PNG', 'image/jpeg' : 'JPG', 'image/webp' : 'WebP'};
 
 // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - 
 // alcuni browser ripristinano lo stato dopo un caricamento). 
@@ -32,7 +35,7 @@ fileInput.addEventListener('change', function () {
     // Formato non ammesso: mostra l'errore e svuota l'input,
     // così accanto al pulsante non resta il nome del file rifiutato
     if (!ALLOWED_TYPES.includes(file.type)) {
-        message.textContent = '❌ Formato non supportato. Il file selezionato deve essere nel formato JPG o PNG.';
+        message.textContent = '❌ Formato non supportato. Il file selezionato deve essere nel formato JPG, PNG o WebP.';
         fileInput.value = '';
         preview.hidden = true; 
         convertBtn.disabled = true;
