@@ -9,10 +9,16 @@
 - Stato e avanzamento con icone al posto delle emoji; barra di avanzamento complessiva durante la conversione
 - Pulsante "Riconverti" dopo la conversione e "Cambia selezione" per scegliere altre immagini
 - I file scartati sono elencati in un avviso dedicato
+- Il badge in alto parla esplicitamente delle immagini: "Immagini mai caricate online" su smartphone, "Le tue immagini non lasciano il dispositivo" da 640px in su
 
 ### Aggiunto
 
 - Trascinamento delle immagini nella pagina (drag & drop), oltre al pulsante "Sfoglia…"
+- Content Security Policy: il browser blocca qualunque richiesta verso altri server
+
+### Corretto
+
+- I font Barlow sono ospitati insieme all'app invece che caricati da Google Fonts: aprire la pagina non invia più l'indirizzo IP del visitatore a Google, e torna valido il requisito "nessuna richiesta di rete"
 
 ## [0.3] - 2026-10-11
 

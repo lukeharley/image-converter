@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Content Security Policy: il browser può caricare solo file di questo sito e non può
+         contattare nessun server. Così "le immagini non escono dal dispositivo" non è solo una
+         promessa: qualunque richiesta esterna verrebbe bloccata (e segnalata in console). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Image Converter</title>
     <link rel="stylesheet" href="industry.css"/>
     <link rel="stylesheet" href="style.css"/>
@@ -12,7 +16,8 @@
       <span class="nav-brand">Image Converter</span>
       <span class="tag tag-accent">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        Resta sul tuo dispositivo
+        <span class="tag-long">Le tue immagini non lasciano il dispositivo</span>
+        <span class="tag-short">Immagini mai caricate online</span>
       </span>
     </nav>
 

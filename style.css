@@ -20,6 +20,21 @@ body {
     gap: 6px;
 }
 
+/* Testo del badge: versione breve sugli schermi stretti, completa da 640px in su */
+.tag-long {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .tag-long {
+        display: inline;
+    }
+
+    .tag-short {
+        display: none;
+    }
+}
+
 main {
     max-width: 1000px;
     margin: 0 auto;
