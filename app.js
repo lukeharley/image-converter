@@ -34,6 +34,9 @@ fileInput.addEventListener('change', function () {
     
     const sizeKB = Math.round(file.size / 1024);
     message.textContent = `✅ ${file.name} · ${sizeKB} KB`;
+
+    downloadLink.hidden = true; 
+    convertBtn.disabled = true; // Il pulsante si riabilita solo a caricamento finito
     // Prima di creare un nuovo URL, liberiamo il precedente
     if (preview.src) URL.revokeObjectURL(preview.src);
     preview.src = URL.createObjectURL(file); 
@@ -65,9 +68,14 @@ convertBtn.addEventListener('click', function() {
         message.textContent = `✅ Conversione completata · nuovo peso: ${sizeKB} KB`;
 
         if (downloadLink.href) URL.revokeObjectURL(downloadLink.href);
-        downloadLink.href = URL.createObjectURL(blob);  
-        const fileExtension = ;
-        downloadLink.download = `✅ ${file.name} · ${sizeKB} KB`;
-        downloadLink.hidden = false; 
+        downloadLink.href = URL.createObjectURL(blob); 
+
+        const originalName = fileInput.files[0].name; 
+        const dotIndex = originalName.lastIndexOf('.'); // Posizione dell'ultimo punto
+        const baseName = dotIndex > 0 ? originalName.slice(0, dotIndex) : originalName;
+        const fileExtension = format === 'image/png' ? '.png' : '.jpg';
+        downloadLink.download = baseName + fileExtension;
+        downloadLink.hidden = false;
+
     }, format);
 });
