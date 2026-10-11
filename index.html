@@ -29,6 +29,12 @@
     </nav>
 
     <main>
+      <!-- Compare quando il service worker ha installato una versione più recente dell'app -->
+      <div id="update-banner" role="status" hidden>
+        <span data-i18n="updateText">È disponibile una nuova versione di PIC: ricarica la pagina quando hai finito.</span>
+        <button type="button" id="update-btn" class="btn btn-ghost" data-i18n="updateButton">Ricarica ora</button>
+      </div>
+
       <div>
         <h1 data-i18n="heading">Converti le tue immagini</h1>
         <p class="text-muted" id="intro" data-i18n="intro">Converti, ridimensiona e comprimi JPG, PNG, WebP e foto iPhone (HEIC), anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.</p>
@@ -43,7 +49,7 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
         <div class="dropzone-title" data-i18n="dropTitle">Trascina qui le immagini</div>
         <button type="button" id="browse-btn" class="btn btn-secondary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-i18n="browse">Sfoglia…</span></button>
-        <div class="text-muted dropzone-hint" data-i18n="dropHint">Più file insieme · JPG, PNG, WebP, HEIC</div>
+        <div class="text-muted dropzone-hint" data-i18n="dropHint">Più file insieme · JPG, PNG, WebP, HEIC · oppure incolla con Ctrl+V</div>
       </div>
 
       <!-- Riepilogo della selezione (dallo stato PRONTO in poi) -->
@@ -55,6 +61,10 @@
 
       <div id="controls" class="blueprint">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div class="field option-field" id="presets-field">
+          <label id="presets-label" data-i18n="presetsLabel">Profili rapidi</label>
+          <div id="presets" role="group" aria-labelledby="presets-label"></div>
+        </div>
         <div class="field option-field" id="format-field">
           <label id="format-label" data-i18n="formatLabel">Converti in</label>
           <div class="seg" id="format" role="radiogroup" aria-labelledby="format-label"></div>
@@ -77,7 +87,7 @@
       <!-- Stato IN CORSO: avanzamento complessivo -->
       <div id="progress" hidden>
         <div class="progress-text"><span id="progress-label"></span><span class="text-muted" id="progress-pct"></span></div>
-        <div class="bar"><div class="bar-fill" id="progress-fill"></div></div>
+        <div class="bar" id="progress-bar" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="bar-fill" id="progress-fill"></div></div>
       </div>
 
       <!-- Stato CONVERTITO: esito della conversione -->

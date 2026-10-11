@@ -122,8 +122,11 @@ h1 {
     padding: var(--space-4);
 }
 
-/* Formato, dimensioni e peso: attenuati quando non si possono cambiare */
-.option-field.locked {
+/* Profili, formato, dimensioni e peso: attenuati quando non si possono cambiare.
+   Solo i pulsanti: le etichette restano leggibili (le WCAG esentano dal contrasto i controlli
+   disattivati, non i loro titoli) */
+.option-field.locked .seg,
+.option-field.locked #presets {
     opacity: 0.45;
 }
 
@@ -323,7 +326,7 @@ h1 {
 
 .status.wait,
 .status.skip {
-    color: color-mix(in srgb, var(--color-text) 55%, transparent);
+    color: color-mix(in srgb, var(--color-text) 68%, transparent);
 }
 
 /* Non riuscita, oppure oltre il peso massimo: evidenziate senza introdurre nuovi colori */
@@ -376,3 +379,73 @@ h1 {
     font-size: 13px;
     padding: 2px 4px;
 }
+
+/* ——— Accessibilità: contrasto del testo (WCAG 2.1 AA, almeno 4,5:1) ———
+   Nel design system Industry il blu d'accento (#5980a6) e il grigio attenuato arrivano a circa
+   3,7:1 sul fondo chiaro. Per i testi si usano tonalità più scure della stessa scala.
+   Da proporre come correzione direttamente in industry.css. */
+.text-muted {
+    color: color-mix(in srgb, var(--color-text) 68%, transparent);   /* 5,3:1 */
+}
+
+.btn-ghost {
+    color: var(--color-accent-700);                                     /* 5,8:1 */
+}
+
+.btn-primary,
+.seg-opt:has(input:checked) {
+    background: var(--color-accent-700);
+    border-color: var(--color-accent-700);
+}
+
+.btn-primary:hover {
+    background: var(--color-accent-800);
+}
+
+.btn-primary:active {
+    background: var(--color-accent-900);
+}
+
+/* Avviso di nuova versione disponibile (app installata o aperta di recente) */
+#update-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-accent-700);
+    background: var(--color-accent-100);
+    font-size: 14px;
+}
+
+#update-banner[hidden] {
+    display: none;
+}
+
+/* Profili rapidi: pulsanti che impostano insieme formato, dimensioni e peso (riga intera) */
+#presets-field {
+    flex-basis: 100%;
+}
+
+#presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 10px;
+    font-size: 13px;
+    line-height: 1.2;
+    text-align: left;
+}
+
+.preset-btn small {
+    font-size: 11px;
+    color: color-mix(in srgb, var(--color-text) 68%, transparent);
+}
+

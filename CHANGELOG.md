@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7] - 2026-10-11
+
+### Aggiunto
+
+- **Profili rapidi**: "Email" (JPG · 1920 px · 1 MB), "Sito web" (WebP · 1920 px · 500 KB), "Moduli e portali" (JPG · 2560 px · 500 KB)
+- Le ultime impostazioni di formato, dimensioni e peso vengono ricordate per la visita successiva
+- **Incolla con Ctrl+V**: le immagini negli appunti (es. screenshot) vengono aggiunte come file scelti
+- Avviso "È disponibile una nuova versione" quando il service worker installa un aggiornamento, con pulsante per ricaricare
+- Intestazioni di sicurezza servite da Cloudflare (`_headers`): Content Security Policy con protezione dal clickjacking (`frame-ancestors 'none'`), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`
+- Barra di avanzamento leggibile dai lettori di schermo (`role="progressbar"`)
+
+### Modificato
+
+- Contrasto del testo portato al livello WCAG 2.1 AA (almeno 4,5:1): pulsanti, opzioni scelte, testi attenuati; quando i controlli sono bloccati restano leggibili le etichette
+- Con immagini già nel formato scelto, il formato non viene più cambiato in automatico se ci sono limiti di dimensioni o peso (serve per comprimere senza convertire)
+
 ## [0.6] - 2026-10-11
 
 ### Aggiunto
