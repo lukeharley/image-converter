@@ -19,6 +19,6 @@ L'applicazione deve poter convertire una sola immagine tra i formati JPG, PNG e 
 ## Roadmap
 
 - v0.1: una immagine, JPG <> PNG ✅
-- v0.2: piu' formati (WebP, ...) ✅
+- v0.2: piu' formati (WebP) ✅
 - v0.3: piu' immagini insieme
 - v0.4: compressione e ridimensionamento

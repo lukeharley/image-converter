@@ -7,9 +7,10 @@ const downloadLink = document.getElementById('download-link');
 const formatSelect = document.getElementById('format');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 // Nome leggibile di ogni formato, da mostrare all'utente.
-const FORMAT_LABELS = {'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WebP'};
+const FORMAT_LABELS = {'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp' : 'WebP'};
 // Estensione del file per ogni formato.
 const FORMAT_EXTENSIONS = {'image/png' : '.png', 'image/jpeg' : '.jpg', 'image/webp' : '.webp'};
+// Formati che questo browser sa creare. 
 const OUTPUT_TYPES = ALLOWED_TYPES.filter(canEncode);
 
 // Stato iniziale della macchina a stati: VUOTO (non ci fidiamo dell'HTML - 
@@ -139,5 +140,4 @@ function fillFormatOptions(sourceType) {
         option.textContent = FORMAT_LABELS[type];
         formatSelect.appendChild(option);
     }
-
 }
