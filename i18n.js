@@ -4,13 +4,13 @@
 
 const TRANSLATIONS = {
     it: {
-        metaDescription: 'Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche più file insieme. Le immagini non vengono mai caricate online.',
+        metaDescription: 'Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche offline e più file insieme. Toglie la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.',
         langButton: 'EN',
         langButtonLabel: 'Switch to English',
         badgeLong: 'Le tue immagini non lasciano il dispositivo',
         badgeShort: 'Immagini mai caricate online',
         heading: 'Converti le tue immagini',
-        intro: 'Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.',
+        intro: 'Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.',
         dropTitle: 'Trascina qui le immagini',
         browse: 'Sfoglia…',
         dropHint: 'Più file insieme · JPG, PNG, WebP',
@@ -31,16 +31,21 @@ const TRANSLATIONS = {
         progress: v => `Elaborazione ${v.current} di ${v.total}…`,
         statusWait: 'In attesa',
         statusRun: 'Elaborazione…',
-        statusSkipSame: v => `Già in ${v.format}, saltata`,
+        statusSkipSame: v => `Già in ${v.format} e senza metadati, saltata`,
         statusSkipLimits: 'Già entro i limiti, saltata',
         statusDone: v => resultText(v),
         statusOver: v => `${resultText(v)} · oltre ${formatLimit(v.limit)}`,
+        statusClean: v => `${resultText(v)} · senza ricodifica`,
         statusFail: 'Elaborazione non riuscita',
+        tagGps: 'Contiene la posizione GPS',
+        tagMetadata: 'Contiene metadati (EXIF)',
+        tagRemoved: 'Metadati rimossi',
         summary: v => {
             let text = `${v.converted} ${v.converted === 1 ? 'immagine pronta' : 'immagini pronte'} in ${v.format}`;
             if (v.converted > 0) text += ` · da ${formatBytes(v.before)} a ${formatBytes(v.after)}${savingText(v.before, v.after)}`;
             if (v.skipped > 0) text += ` · ${v.skipped} ${v.skipped === 1 ? 'saltata' : 'saltate'}`;
             if (v.overLimit > 0) text += ` · ${v.overLimit} oltre ${formatLimit(v.limit)}`;
+            if (v.cleaned > 0) text += ` · metadati rimossi da ${v.cleaned}`;
             if (v.failed > 0) text += ` · ${v.failed} ${v.failed === 1 ? 'non riuscita' : 'non riuscite'}`;
             return text;
         },
@@ -48,13 +53,13 @@ const TRANSLATIONS = {
         rejectedNames: v => `${v.count === 1 ? 'non è' : 'non sono'} JPG, PNG o WebP: ${v.names}`
     },
     en: {
-        metaDescription: 'Convert, resize and compress JPG, PNG and WebP images right in your browser, even many files at once. Your images are never uploaded.',
+        metaDescription: 'Convert, resize and compress JPG, PNG and WebP images right in your browser, even offline and many files at once. Removes GPS location and other metadata. Your images are never uploaded.',
         langButton: 'IT',
         langButtonLabel: 'Passa all’italiano',
         badgeLong: 'Your images never leave your device',
         badgeShort: 'Images never uploaded',
         heading: 'Convert your images',
-        intro: 'Convert, resize and compress JPG, PNG and WebP, even many files at once. Everything happens in your browser: no file is uploaded.',
+        intro: 'Convert, resize and compress JPG, PNG and WebP, even many files at once. Removes GPS location and other metadata from your photos. Everything happens in your browser, even offline: no file is uploaded.',
         dropTitle: 'Drop your images here',
         browse: 'Browse…',
         dropHint: 'Multiple files · JPG, PNG, WebP',
@@ -75,16 +80,21 @@ const TRANSLATIONS = {
         progress: v => `Processing ${v.current} of ${v.total}…`,
         statusWait: 'Waiting',
         statusRun: 'Processing…',
-        statusSkipSame: v => `Already ${v.format}, skipped`,
+        statusSkipSame: v => `Already ${v.format}, no metadata: skipped`,
         statusSkipLimits: 'Already within limits, skipped',
         statusDone: v => resultText(v),
         statusOver: v => `${resultText(v)} · over ${formatLimit(v.limit)}`,
+        statusClean: v => `${resultText(v)} · not re-encoded`,
         statusFail: 'Processing failed',
+        tagGps: 'Contains GPS location',
+        tagMetadata: 'Contains metadata (EXIF)',
+        tagRemoved: 'Metadata removed',
         summary: v => {
             let text = `${v.converted} ${v.converted === 1 ? 'image' : 'images'} ready as ${v.format}`;
             if (v.converted > 0) text += ` · from ${formatBytes(v.before)} to ${formatBytes(v.after)}${savingText(v.before, v.after)}`;
             if (v.skipped > 0) text += ` · ${v.skipped} skipped`;
             if (v.overLimit > 0) text += ` · ${v.overLimit} over ${formatLimit(v.limit)}`;
+            if (v.cleaned > 0) text += ` · metadata removed from ${v.cleaned}`;
             if (v.failed > 0) text += ` · ${v.failed} failed`;
             return text;
         },
