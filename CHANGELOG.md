@@ -1,5 +1,19 @@
 # Changelog
 
+## [Non rilasciato]
+
+### Modificato
+
+- Nuova interfaccia basata sul design system Industry (direzione "Banco di lavoro"): titoli Barlow Condensed, accento acciaio, riquadri con crocini di registro
+- La scelta del formato è un controllo segmentato (JPG · PNG · WebP) al posto del menu a tendina
+- Stato e avanzamento con icone al posto delle emoji; barra di avanzamento complessiva durante la conversione
+- Pulsante "Riconverti" dopo la conversione e "Cambia selezione" per scegliere altre immagini
+- I file scartati sono elencati in un avviso dedicato
+
+### Aggiunto
+
+- Trascinamento delle immagini nella pagina (drag & drop), oltre al pulsante "Sfoglia…"
+
 ## [0.3] - 2026-10-11
 
 ### Aggiunto

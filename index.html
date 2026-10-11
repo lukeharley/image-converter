@@ -4,25 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Image Converter</title>
+    <link rel="stylesheet" href="industry.css"/>
     <link rel="stylesheet" href="style.css"/>
   </head>
   <body>
-    <header>
-      <h1>Image Converter</h1>
-      <p>🔒Converti le tue immagini in modo privato e sicuro.</p>
-    </header>
+    <nav class="nav">
+      <span class="nav-brand">Image Converter</span>
+      <span class="tag tag-accent">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Resta sul tuo dispositivo
+      </span>
+    </nav>
 
     <main>
-      <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp" multiple/>
-      <p id="message"></p>
-
-      <div id="controls">
-        <label for="format">Converti in:</label>
-        <select id="format" disabled></select>
-        <button id="convert-btn" disabled>Converti tutto</button>
-        <a id="download-link" hidden>Scarica tutto (ZIP)</a>
+      <div>
+        <h1>Converti le tue immagini</h1>
+        <p class="text-muted" id="intro">JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.</p>
       </div>
-      
+
+      <!-- Il selettore nativo resta nascosto: lo aprono "Sfoglia…" e "Cambia selezione" -->
+      <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp" multiple hidden/>
+
+      <!-- Stato VUOTO: area di trascinamento -->
+      <div id="dropzone" class="blueprint">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+        <div class="dropzone-title">Trascina qui le immagini</div>
+        <button type="button" id="browse-btn" class="btn btn-secondary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Sfoglia…</button>
+        <div class="text-muted dropzone-hint">Più file insieme · JPG, PNG, WebP</div>
+      </div>
+
+      <!-- Riepilogo della selezione (dallo stato PRONTO in poi) -->
+      <div id="selection" hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+        <span id="selection-label"></span>
+        <button type="button" id="change-btn" class="btn btn-ghost">Cambia selezione</button>
+      </div>
+
+      <div id="controls" class="blueprint">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div class="field" id="format-field">
+          <label id="format-label">Converti in</label>
+          <div class="seg" id="format" role="radiogroup" aria-labelledby="format-label"></div>
+        </div>
+        <div id="actions">
+          <button type="button" id="reconvert-btn" class="btn btn-secondary blueprint" hidden><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Riconverti</button>
+          <button type="button" id="convert-btn" class="btn btn-primary blueprint" disabled><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span id="convert-label">Converti tutto</span><svg id="convert-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+          <a id="download-link" class="btn btn-primary blueprint" hidden><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg><span id="download-label">Scarica tutto (ZIP)</span></a>
+        </div>
+      </div>
+
+      <!-- Stato IN CORSO: avanzamento complessivo -->
+      <div id="progress" hidden>
+        <div class="progress-text"><span id="progress-label"></span><span class="text-muted" id="progress-pct"></span></div>
+        <div class="bar"><div class="bar-fill" id="progress-fill"></div></div>
+      </div>
+
+      <!-- Stato CONVERTITO: esito della conversione -->
+      <div id="message" role="status" hidden></div>
+
+      <!-- File scartati perché non sono JPG, PNG o WebP -->
+      <div id="rejected" class="blueprint" hidden>
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+        <div><strong id="rejected-count"></strong> — <span id="rejected-names"></span></div>
+      </div>
+
       <ul id="grid"></ul>
     </main>
 
