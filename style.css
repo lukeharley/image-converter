@@ -1,4 +1,47 @@
-#preview {
-    max-width: 100%; 
-    max-height: 60vh; 
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* Griglia di miniature: tante colonne quante ne entrano, larghe almeno 140px */
+#grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+
+/* Sfondo a scacchiera: rende visibili le zone trasparenti */
+.card img {
+    width: 100%;
+    height: 110px;
+    object-fit: contain;
+    background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+}
+
+.card p {
+    margin: 4px 0 0;
+}
+
+/* Link per scaricare la singola immagine convertita */
+.card-download {
+    display: inline-block;
+    margin-top: 4px;
+}
+
+/* Senza questa regola, "display: inline-block" renderebbe visibili anche i link con hidden */
+.card-download[hidden] {
+    display: none;
 }
