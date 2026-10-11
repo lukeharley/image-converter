@@ -1,6 +1,25 @@
 # Changelog
 
-## [Non rilasciato]
+## [0.4] - 2026-10-11
+
+### Aggiunto
+
+- Ridimensionamento: lato lungo massimo di 2560, 1920, 1280 o 800 pixel, mantenendo le proporzioni; le immagini più piccole non vengono mai ingrandite
+- Compressione con peso massimo di 2 MB, 1 MB, 500 KB o 200 KB: per JPG e WebP si cerca la qualità più alta che rientra nel limite, poi se serve si riducono i lati; per il PNG si riducono solo i lati
+- Ogni scheda mostra dimensioni finali, peso e risparmio rispetto all'originale; il riepilogo mostra il peso totale prima e dopo
+- Avviso nella scheda se un'immagine resta oltre il peso massimo
+- Interfaccia in inglese, con pulsante IT/EN per cambiare lingua in qualsiasi momento (anche dopo una conversione, senza perdere i risultati); la lingua iniziale è quella del browser e la scelta viene ricordata
+- Numeri con il separatore decimale della lingua ("4,2 MB" in italiano, "4.2 MB" in inglese)
+- Descrizione della pagina per i motori di ricerca
+
+### Modificato
+
+- Nuovo nome: **PIC – Private Image Converter**
+- Il formato di partenza si può scegliere anche come destinazione, per ridimensionare o comprimere senza convertire
+- Le immagini che rispettano già formato, dimensioni e peso vengono saltate senza essere ricodificate
+- Qualità di JPG e WebP fissata a 0,9 (prima dipendeva dal browser)
+
+## [0.3.1] - 2026-10-11
 
 ### Modificato
 

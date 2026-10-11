@@ -7,24 +7,26 @@
          contattare nessun server. Così "le immagini non escono dal dispositivo" non è solo una
          promessa: qualunque richiesta esterna verrebbe bloccata (e segnalata in console). -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
-    <title>Image Converter</title>
+    <title>PIC – Private Image Converter</title>
+    <meta name="description" content="Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche più file insieme. Le immagini non vengono mai caricate online.">
     <link rel="stylesheet" href="industry.css"/>
     <link rel="stylesheet" href="style.css"/>
   </head>
   <body>
     <nav class="nav">
-      <span class="nav-brand">Image Converter</span>
+      <span class="nav-brand">PIC <span class="brand-full">· Private Image Converter</span></span>
       <span class="tag tag-accent">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        <span class="tag-long">Le tue immagini non lasciano il dispositivo</span>
-        <span class="tag-short">Immagini mai caricate online</span>
+        <span class="tag-long" data-i18n="badgeLong">Le tue immagini non lasciano il dispositivo</span>
+        <span class="tag-short" data-i18n="badgeShort">Immagini mai caricate online</span>
       </span>
+      <button type="button" id="lang-btn" class="btn btn-ghost lang-btn" data-i18n="langButton" data-i18n-label="langButtonLabel" aria-label="Switch to English">EN</button>
     </nav>
 
     <main>
       <div>
-        <h1>Converti le tue immagini</h1>
-        <p class="text-muted" id="intro">JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.</p>
+        <h1 data-i18n="heading">Converti le tue immagini</h1>
+        <p class="text-muted" id="intro" data-i18n="intro">Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Tutto avviene nel browser: nessun file viene caricato online.</p>
       </div>
 
       <!-- Il selettore nativo resta nascosto: lo aprono "Sfoglia…" e "Cambia selezione" -->
@@ -34,26 +36,34 @@
       <div id="dropzone" class="blueprint">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
-        <div class="dropzone-title">Trascina qui le immagini</div>
-        <button type="button" id="browse-btn" class="btn btn-secondary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Sfoglia…</button>
-        <div class="text-muted dropzone-hint">Più file insieme · JPG, PNG, WebP</div>
+        <div class="dropzone-title" data-i18n="dropTitle">Trascina qui le immagini</div>
+        <button type="button" id="browse-btn" class="btn btn-secondary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-i18n="browse">Sfoglia…</span></button>
+        <div class="text-muted dropzone-hint" data-i18n="dropHint">Più file insieme · JPG, PNG, WebP</div>
       </div>
 
       <!-- Riepilogo della selezione (dallo stato PRONTO in poi) -->
       <div id="selection" hidden>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
         <span id="selection-label"></span>
-        <button type="button" id="change-btn" class="btn btn-ghost">Cambia selezione</button>
+        <button type="button" id="change-btn" class="btn btn-ghost" data-i18n="changeSelection">Cambia selezione</button>
       </div>
 
       <div id="controls" class="blueprint">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-        <div class="field" id="format-field">
-          <label id="format-label">Converti in</label>
+        <div class="field option-field" id="format-field">
+          <label id="format-label" data-i18n="formatLabel">Converti in</label>
           <div class="seg" id="format" role="radiogroup" aria-labelledby="format-label"></div>
         </div>
+        <div class="field option-field" id="size-field">
+          <label id="size-label" data-i18n="sizeLabel">Lato lungo massimo (px)</label>
+          <div class="seg" id="size" role="radiogroup" aria-labelledby="size-label"></div>
+        </div>
+        <div class="field option-field" id="weight-field">
+          <label id="weight-label" data-i18n="weightLabel">Peso massimo</label>
+          <div class="seg" id="weight" role="radiogroup" aria-labelledby="weight-label"></div>
+        </div>
         <div id="actions">
-          <button type="button" id="reconvert-btn" class="btn btn-secondary blueprint" hidden><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Riconverti</button>
+          <button type="button" id="reconvert-btn" class="btn btn-secondary blueprint" hidden><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-i18n="reconvert">Riconverti</span></button>
           <button type="button" id="convert-btn" class="btn btn-primary blueprint" disabled><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span id="convert-label">Converti tutto</span><svg id="convert-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
           <a id="download-link" class="btn btn-primary blueprint" hidden><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg><span id="download-label">Scarica tutto (ZIP)</span></a>
         </div>
@@ -78,6 +88,7 @@
       <ul id="grid"></ul>
     </main>
 
+    <script src="i18n.js"></script>
     <script src="zip.js"></script>
     <script src="app.js"></script>
   </body>

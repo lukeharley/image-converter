@@ -20,13 +20,23 @@ body {
     gap: 6px;
 }
 
-/* Testo del badge: versione breve sugli schermi stretti, completa da 640px in su */
-.tag-long {
+/* Pulsante della lingua: compatto, mostra la sigla dell'altra lingua */
+.lang-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+}
+
+/* Testo del badge e nome completo dell'app: versione breve sugli schermi stretti,
+   completa da 640px in su */
+.tag-long,
+.brand-full {
     display: none;
 }
 
 @media (min-width: 640px) {
-    .tag-long {
+    .tag-long,
+    .brand-full {
         display: inline;
     }
 
@@ -112,7 +122,8 @@ h1 {
     padding: var(--space-4);
 }
 
-#format-field.locked {
+/* Formato, dimensioni e peso: attenuati quando non si possono cambiare */
+.option-field.locked {
     opacity: 0.45;
 }
 
@@ -121,7 +132,13 @@ h1 {
     justify-content: center;
 }
 
-#format-field.locked .seg-opt {
+/* Dimensioni e peso hanno 5 opzioni: pulsanti più compatti per stare in uno schermo da 360px */
+#size .seg-opt,
+#weight .seg-opt {
+    padding: 7px 9px;
+}
+
+.option-field.locked .seg-opt {
     cursor: not-allowed;
 }
 
@@ -259,7 +276,9 @@ h1 {
     color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
-.status.fail {
+/* Non riuscita, oppure oltre il peso massimo: evidenziate senza introdurre nuovi colori */
+.status.fail,
+.status.warn {
     font-weight: 500;
 }
 
