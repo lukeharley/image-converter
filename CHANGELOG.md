@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6] - 2026-10-11
+
+### Aggiunto
+
+- Conversione delle foto iPhone (**HEIC/HEIF**) in JPG, PNG o WebP, con ridimensionamento e peso massimo come per gli altri formati
+  - Decodifica con il browser se ne è capace (Safari), altrimenti con libheif in WebAssembly, in un worker separato per non bloccare la pagina
+  - Il decoder (2 MB) si scarica solo alla prima foto HEIC e poi resta disponibile anche offline
+  - La rotazione salvata nel file viene applicata, quindi le foto verticali restano dritte
+  - I file `.heic`/`.heif` vengono riconosciuti anche quando il browser non ne indica il tipo (Chrome su Windows)
+  - Con sole foto HEIC il formato proposto è JPG
+  - Avviso "Contiene la posizione GPS" anche per le foto HEIC; dopo la conversione i metadati non ci sono più
+- Riquadro con il nome del formato al posto della miniatura quando il browser non sa mostrare l'originale; dopo la conversione compare l'immagine convertita
+
 ## [0.5] - 2026-10-11
 
 ### Aggiunto

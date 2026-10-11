@@ -3,9 +3,10 @@
 // le immagini dell'utente non vengono mai richieste a un server, quindi non passano di qui.
 
 // Va cambiata a ogni rilascio: il browser installa la nuova versione e cancella la vecchia
-const CACHE = 'pic-v0.5';
+const CACHE = 'pic-v0.6';
 
-// File dell'app da scaricare subito, alla prima visita
+// File dell'app da scaricare subito, alla prima visita. Il decoder HEIC (vendor/libheif, 2 MB)
+// non è nell'elenco: si scarica solo alla prima foto HEIC e da lì resta salvato (vedi "RICHIESTE")
 const FILES = [
     './',
     'index.html',
@@ -15,6 +16,7 @@ const FILES = [
     'zip.js',
     'metadata.js',
     'app.js',
+    'heic-worker.js',
     'manifest.webmanifest',
     'fonts/fonts.css',
     'fonts/barlow-400-latin.woff2',

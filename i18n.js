@@ -4,16 +4,16 @@
 
 const TRANSLATIONS = {
     it: {
-        metaDescription: 'Converti, ridimensiona e comprimi immagini JPG, PNG e WebP direttamente nel browser, anche offline e più file insieme. Toglie la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.',
+        metaDescription: 'Converti, ridimensiona e comprimi immagini JPG, PNG, WebP e foto iPhone (HEIC) direttamente nel browser, anche offline e più file insieme. Toglie la posizione GPS e gli altri metadati. Le immagini non vengono mai caricate online.',
         langButton: 'EN',
         langButtonLabel: 'Switch to English',
         badgeLong: 'Le tue immagini non lasciano il dispositivo',
         badgeShort: 'Immagini mai caricate online',
         heading: 'Converti le tue immagini',
-        intro: 'Converti, ridimensiona e comprimi JPG, PNG e WebP, anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.',
+        intro: 'Converti, ridimensiona e comprimi JPG, PNG, WebP e foto iPhone (HEIC), anche più file insieme. Toglie dalle foto la posizione GPS e gli altri metadati. Tutto avviene nel browser, anche offline: nessun file viene caricato online.',
         dropTitle: 'Trascina qui le immagini',
         browse: 'Sfoglia…',
-        dropHint: 'Più file insieme · JPG, PNG, WebP',
+        dropHint: 'Più file insieme · JPG, PNG, WebP, HEIC',
         changeSelection: 'Cambia selezione',
         formatLabel: 'Converti in',
         sizeLabel: 'Lato lungo massimo (px)',
@@ -50,19 +50,19 @@ const TRANSLATIONS = {
             return text;
         },
         rejectedCount: v => `${v.count} ${v.count === 1 ? 'file scartato' : 'file scartati'}`,
-        rejectedNames: v => `${v.count === 1 ? 'non è' : 'non sono'} JPG, PNG o WebP: ${v.names}`
+        rejectedNames: v => `${v.count === 1 ? 'non è' : 'non sono'} JPG, PNG, WebP o HEIC: ${v.names}`
     },
     en: {
-        metaDescription: 'Convert, resize and compress JPG, PNG and WebP images right in your browser, even offline and many files at once. Removes GPS location and other metadata. Your images are never uploaded.',
+        metaDescription: 'Convert, resize and compress JPG, PNG, WebP and iPhone (HEIC) photos right in your browser, even offline and many files at once. Removes GPS location and other metadata. Your images are never uploaded.',
         langButton: 'IT',
         langButtonLabel: 'Passa all’italiano',
         badgeLong: 'Your images never leave your device',
         badgeShort: 'Images never uploaded',
         heading: 'Convert your images',
-        intro: 'Convert, resize and compress JPG, PNG and WebP, even many files at once. Removes GPS location and other metadata from your photos. Everything happens in your browser, even offline: no file is uploaded.',
+        intro: 'Convert, resize and compress JPG, PNG, WebP and iPhone (HEIC) photos, even many files at once. Removes GPS location and other metadata from your photos. Everything happens in your browser, even offline: no file is uploaded.',
         dropTitle: 'Drop your images here',
         browse: 'Browse…',
-        dropHint: 'Multiple files · JPG, PNG, WebP',
+        dropHint: 'Multiple files · JPG, PNG, WebP, HEIC',
         changeSelection: 'Change selection',
         formatLabel: 'Convert to',
         sizeLabel: 'Max long side (px)',
@@ -99,7 +99,7 @@ const TRANSLATIONS = {
             return text;
         },
         rejectedCount: v => `${v.count} ${v.count === 1 ? 'file rejected' : 'files rejected'}`,
-        rejectedNames: v => `not JPG, PNG or WebP: ${v.names}`
+        rejectedNames: v => `not JPG, PNG, WebP or HEIC: ${v.names}`
     }
 };
 

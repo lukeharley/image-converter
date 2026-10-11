@@ -28,9 +28,12 @@ const rejectedCount = document.getElementById('rejected-count');
 const rejectedNames = document.getElementById('rejected-names');
 const grid = document.getElementById('grid');
 
+// Formati in cui si può convertire, e formati che si possono aprire (anche le foto iPhone)
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const HEIC_TYPES = ['image/heic', 'image/heif'];
+const INPUT_TYPES = [...ALLOWED_TYPES, ...HEIC_TYPES];
 // Nome leggibile di ogni formato, da mostrare all'utente.
-const FORMAT_LABELS = {'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WebP'};
+const FORMAT_LABELS = {'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WebP', 'image/heic': 'HEIC', 'image/heif': 'HEIF'};
 // Estensione del file per ogni formato.
 const FORMAT_EXTENSIONS = {'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp'};
 // Formati che questo browser sa creare.
@@ -83,6 +86,10 @@ let phase = 'empty';
 // Quanti trascinamenti sono "dentro" la pagina: dragenter e dragleave arrivano
 // anche passando da un elemento figlio all'altro, quindi non basta un booleano
 let dragDepth = 0;
+// Worker che decodifica le foto HEIC (creato solo alla prima foto HEIC) e richieste in attesa
+let heicWorker = null;
+const heicRequests = new Map();
+let heicNextId = 1;
 // Dati degli ultimi testi mostrati (riepiloghi, avanzamento, download): servono a
 // riscriverli nella nuova lingua quando l'utente la cambia, senza rifare la conversione
 const view = { selection: null, progress: null, summary: null, download: null, rejected: [], canDownload: false };
@@ -176,8 +183,9 @@ for (const group of [formatGroup, sizeGroup, weightGroup]) {
  * @param {File[]} files - file scelti o trascinati dall'utente
  */
 function handleFiles(files) {
-    const valid = files.filter(file => ALLOWED_TYPES.includes(file.type));
-    const rejected = files.filter(file => !ALLOWED_TYPES.includes(file.type));
+    files = files.map(withDetectedType);
+    const valid = files.filter(file => INPUT_TYPES.includes(file.type));
+    const rejected = files.filter(file => !INPUT_TYPES.includes(file.type));
 
     setEmptyState();
     showRejected(rejected);
@@ -328,10 +336,10 @@ function setPhase(newPhase, canDownload = false) {
  * Libera anche la memoria occupata dalle miniature precedenti.
  */
 function setEmptyState() {
+    grid.innerHTML = '';   // prima si tolgono le schede, così clearResults non ricarica le miniature
     clearResults();
-    for (const item of items) URL.revokeObjectURL(item.card.querySelector('img').src);
+    for (const item of items) URL.revokeObjectURL(item.card.dataset.thumb);
     items = [];
-    grid.innerHTML = '';
     view.selection = null;
     renderSelection();
     showRejected([]);
@@ -354,8 +362,19 @@ function createCard(file) {
     }
 
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
+    card.dataset.thumb = URL.createObjectURL(file);
+    img.src = card.dataset.thumb;
     img.alt = file.name;
+    // Il browser non sa mostrare questa immagine (es. HEIC su Chrome): al suo posto un riquadro
+    // con il nome del formato, finché non c'è l'immagine convertita da mostrare
+    img.addEventListener('error', function () {
+        if (img.src === card.dataset.thumb) card.dataset.native = 'no';   // il browser non sa aprire l'originale
+        card.classList.add('no-preview');
+    });
+    img.addEventListener('load', () => card.classList.remove('no-preview'));
+    const placeholder = document.createElement('div');
+    placeholder.className = 'thumb-placeholder';
+    placeholder.textContent = FORMAT_LABELS[file.type];
 
     const name = document.createElement('div');
     name.className = 'file-name';
@@ -385,7 +404,7 @@ function createCard(file) {
     link.append(icon('download', 13), linkText);
     link.hidden = true;
 
-    card.append(img, name, meta, metadataTag, status, bar, link);
+    card.append(img, placeholder, name, meta, metadataTag, status, bar, link);
     renderMeta(card, file);
     return card;
 }
@@ -432,6 +451,8 @@ function showCardDownload(item, blob, name) {
     link.href = item.downloadUrl;
     link.download = name;
     link.hidden = false;
+    // Se l'originale non si poteva mostrare, la miniatura diventa l'immagine convertita
+    if (item.card.dataset.native === 'no') item.card.querySelector('img').src = item.downloadUrl;
 }
 
 /**
@@ -442,6 +463,9 @@ function clearResults() {
     for (const item of items) {
         setStatus(item, '', '');
         item.cleaned = false;
+        // Miniatura di nuovo sull'originale (se il browser non sa mostrarlo, torna il riquadro)
+        const img = item.card.querySelector('img');
+        if (item.card.isConnected && img.src !== item.card.dataset.thumb) img.src = item.card.dataset.thumb;
         renderMetadataTag(item);
         item.card.querySelector('.card-download').hidden = true;
         if (item.downloadUrl) URL.revokeObjectURL(item.downloadUrl);
@@ -633,7 +657,8 @@ function fillSegment(group, name, options, chosen) {
 
 /**
  * Crea i pulsanti dei formati di destinazione (controllo segmentato).
- * Compaiono tutti i formati che il browser sa creare: anche quello di partenza, perché
+ * Compaiono tutti i formati che il browser sa creare (non l'HEIC, che si può solo aprire):
+ * anche quello di partenza, perché
  * dalla v0.4 si può ridimensionare o comprimere senza cambiare formato.
  * Resta scelto il formato precedente; se però tutte le immagini sono già in quel formato,
  * se ne propone un altro (scegliere lo stesso formato ha senso solo con dimensioni o peso).
@@ -642,9 +667,12 @@ function fillSegment(group, name, options, chosen) {
 function fillFormatOptions(sourceTypes) {
     const previous = selectedFormat() || DEFAULT_FORMAT;
     const allSame = sourceTypes.size === 1 && sourceTypes.has(previous);
-    const chosen = allSame || !OUTPUT_TYPES.includes(previous)
-        ? OUTPUT_TYPES.find(type => !sourceTypes.has(type)) || OUTPUT_TYPES[0]
-        : previous;
+    const allHeic = sourceTypes.size > 0 && [...sourceTypes].every(type => HEIC_TYPES.includes(type));
+    // Le foto iPhone si convertono quasi sempre in JPG, il formato che si apre ovunque
+    const chosen = allHeic ? 'image/jpeg'
+        : allSame || !OUTPUT_TYPES.includes(previous)
+            ? OUTPUT_TYPES.find(type => !sourceTypes.has(type)) || OUTPUT_TYPES[0]
+            : previous;
     fillSegment(formatGroup, 'format', OUTPUT_TYPES.map(type => ({ value: type, label: FORMAT_LABELS[type] })), chosen);
 }
 
@@ -662,7 +690,7 @@ function fillFormatOptions(sourceTypes) {
  *   rispetta già tutto, non ha metadati e non serve toccarla
  */
 async function processImage(file, format, maxSide, maxBytes, info) {
-    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const bitmap = await decodeImage(file);
     try {
         const longSide = Math.max(bitmap.width, bitmap.height);
         let scale = maxSide > 0 ? Math.min(1, maxSide / longSide) : 1;
@@ -691,6 +719,54 @@ async function processImage(file, format, maxSide, maxBytes, info) {
     } finally {
         bitmap.close();   // libera subito la memoria dell'immagine decodificata
     }
+}
+
+/**
+ * Decodifica un'immagine. JPG, PNG e WebP li decodifica il browser; le foto HEIC le
+ * decodifica il browser se ne è capace (Safari), altrimenti libheif in un worker.
+ * @param {File} file
+ * @returns {Promise<ImageBitmap>} l'immagine, già ruotata come va mostrata
+ */
+async function decodeImage(file) {
+    try {
+        return await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (error) {
+        if (!HEIC_TYPES.includes(file.type)) throw error;
+        return decodeHeic(file);
+    }
+}
+
+/**
+ * Decodifica una foto HEIC con libheif, nel worker heic-worker.js.
+ * Il worker viene creato alla prima foto HEIC: chi non ne usa non scarica la libreria (2 MB).
+ * @param {File} file
+ * @returns {Promise<ImageBitmap>}
+ */
+async function decodeHeic(file) {
+    if (!heicWorker) {
+        heicWorker = new Worker('heic-worker.js');
+        heicWorker.addEventListener('message', function (event) {
+            const request = heicRequests.get(event.data.id);
+            heicRequests.delete(event.data.id);
+            if (event.data.error) request.reject(new Error(event.data.error));
+            else request.resolve(event.data);
+        });
+        // Il worker non si è potuto avviare: falliscono le richieste in attesa, alla prossima si riprova
+        heicWorker.addEventListener('error', function () {
+            for (const request of heicRequests.values()) request.reject(new Error('Decoder HEIC non disponibile'));
+            heicRequests.clear();
+            heicWorker.terminate();
+            heicWorker = null;
+        });
+    }
+    const buffer = await file.arrayBuffer();
+    const decoded = await new Promise(function (resolve, reject) {
+        const id = heicNextId++;
+        heicRequests.set(id, { resolve: resolve, reject: reject });
+        heicWorker.postMessage({ id: id, buffer: buffer }, [buffer]);   // byte trasferiti, non copiati
+    });
+    const pixels = new ImageData(new Uint8ClampedArray(decoded.pixels), decoded.width, decoded.height);
+    return createImageBitmap(pixels);
 }
 
 /**
@@ -762,6 +838,19 @@ async function encodeWithin(canvas, format, maxBytes) {
         }
     }
     return best;
+}
+
+/**
+ * Assegna il tipo giusto ai file HEIC/HEIF. Molti browser non lo riconoscono (su Windows
+ * Chrome lascia il tipo vuoto): in quel caso si guarda l'estensione del nome.
+ * @param {File} file
+ * @returns {File} lo stesso file, oppure una copia con il tipo corretto (i byte non vengono duplicati)
+ */
+function withDetectedType(file) {
+    if (INPUT_TYPES.includes(file.type)) return file;
+    const extension = file.name.toLowerCase().split('.').pop();
+    if (extension !== 'heic' && extension !== 'heif') return file;
+    return new File([file], file.name, { type: 'image/' + extension, lastModified: file.lastModified });
 }
 
 /**
