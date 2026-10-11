@@ -92,7 +92,7 @@ convertBtn.addEventListener('click', function() {
             return;
         }
         const sizeKB = Math.round(blob.size / 1024);
-        message.textContent = `✅ Conversione completata · nuovo peso: ${sizeKB} KB`;
+        message.textContent = `✅ Convertito in ${FORMAT_LABELS[format]} · nuovo peso: ${sizeKB} KB`;
 
         if (downloadLink.href) URL.revokeObjectURL(downloadLink.href);
         downloadLink.href = URL.createObjectURL(blob); 
@@ -100,7 +100,6 @@ convertBtn.addEventListener('click', function() {
         const originalName = fileInput.files[0].name; 
         const dotIndex = originalName.lastIndexOf('.'); // Posizione dell'ultimo punto
         const baseName = dotIndex > 0 ? originalName.slice(0, dotIndex) : originalName;
-        const fileExtension = format === 'image/png' ? '.png' : '.jpg';
         downloadLink.download = baseName + fileExtension;
         downloadLink.hidden = false;
 
