@@ -9,6 +9,8 @@
 - Download di tutte le immagini convertite in un unico archivio ZIP, creato senza librerie esterne
 - Gestione dei nomi duplicati nello ZIP ("foto.webp", "foto (2).webp")
 - Sfondo a scacchiera nelle miniature per rendere visibili le zone trasparenti
+- Link "Scarica" in ogni scheda per scaricare solo alcune immagini convertite
+- Download diretto del file, senza ZIP, quando l'immagine convertita è una sola
 
 ### Modificato
 
