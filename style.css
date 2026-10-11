@@ -1,47 +1,294 @@
-#controls {
+/* Stili dell'app. Colori, font e spaziature arrivano dai token di industry.css:
+   qui si usano solo le sue variabili (var(--color-*), var(--space-*), ...). */
+
+/* Senza questa regola, gli elementi con display impostato qui sotto ignorerebbero hidden */
+[hidden] {
+    display: none !important;
+}
+
+body {
+    min-height: 100vh;
+    container-type: inline-size;
+}
+
+.nav {
+    border-bottom: 1px solid var(--color-divider);
+    padding: var(--space-3) var(--space-6);
+}
+
+.nav .tag {
+    gap: 6px;
+}
+
+main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+h1 {
+    font-size: clamp(32px, 6cqi, 46px);
+    margin: 0 0 var(--space-1);
+}
+
+#intro {
+    margin: 0;
+    max-width: 60ch;
+    text-wrap: pretty;
+}
+
+/* — Area di trascinamento (stato VUOTO) — */
+#dropzone {
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    border-style: dashed;
+}
+
+/* Evidenzia l'area mentre l'utente trascina dei file sopra la pagina */
+#dropzone.dragover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-100);
+}
+
+.dropzone-title {
+    font-family: var(--font-heading);
+    font-weight: var(--font-heading-weight);
+    font-size: 22px;
+    line-height: 1.1;
+}
+
+.dropzone-hint {
+    font-size: 12px;
+}
+
+/* — Riepilogo della selezione — */
+#selection {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-divider);
 }
 
-/* Griglia di miniature: tante colonne quante ne entrano, larghe almeno 140px */
+#selection-label {
+    font-weight: 500;
+}
+
+#change-btn {
+    margin-left: auto;
+}
+
+/* — Pannello formato + azioni — */
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-4);
+    padding: var(--space-4);
+}
+
+#format-field.locked {
+    opacity: 0.45;
+}
+
+#format .seg-opt {
+    min-width: 64px;
+    justify-content: center;
+}
+
+#format-field.locked .seg-opt {
+    cursor: not-allowed;
+}
+
+#actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-left: auto;
+}
+
+.btn {
+    white-space: nowrap;
+}
+
+/* — Avanzamento (stato IN CORSO) — */
+#progress {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.bar {
+    height: 3px;
+    background: var(--color-neutral-300);
+}
+
+.bar-fill {
+    height: 100%;
+    width: 0;
+    background: var(--color-accent);
+    transition: width 0.2s;
+}
+
+/* — Esito (stato CONVERTITO) — */
+#message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-accent-700);
+}
+
+#message svg {
+    flex: none;
+}
+
+/* — File scartati — */
+#rejected {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3) var(--space-4);
+    font-size: 13px;
+}
+
+#rejected svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+#rejected strong {
+    font-weight: 500;
+}
+
+/* — Griglia di schede: tante colonne quante ne entrano, larghe almeno 150px — */
 #grid {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-6) var(--space-4);
 }
 
-.card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 8px;
-    font-size: 0.85rem;
-    overflow-wrap: anywhere;
+/* "file-card" e non "card": industry.css ha già una classe .card con un altro aspetto */
+.file-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--space-2);
 }
 
 /* Sfondo a scacchiera: rende visibili le zone trasparenti */
-.card img {
+.file-card img {
     width: 100%;
-    height: 110px;
+    height: 120px;
     object-fit: contain;
-    background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+    margin-bottom: 4px;
+    background: repeating-conic-gradient(var(--color-neutral-200) 0% 25%, var(--color-bg) 0% 50%) 50% / 16px 16px;
 }
 
-.card p {
-    margin: 4px 0 0;
+.file-name {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.file-meta {
+    font-size: 12px;
+}
+
+/* Riga di stato della scheda: icona + testo; il colore dipende dallo stato */
+.status {
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    font-size: 12px;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
+}
+
+.status:empty {
+    display: none;
+}
+
+.status svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.status.done {
+    color: var(--color-accent-700);
+}
+
+.status.wait,
+.status.skip {
+    color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.status.fail {
+    font-weight: 500;
+}
+
+/* Icona che gira durante la conversione */
+.status.run svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Barra indeterminata sotto la scheda in conversione */
+.card-bar {
+    height: 2px;
+    margin-top: 2px;
+    background: var(--color-neutral-300);
+    overflow: hidden;
+}
+
+.card-bar::after {
+    content: "";
+    display: block;
+    width: 40%;
+    height: 100%;
+    background: var(--color-accent);
+    animation: slide 1.2s ease-in-out infinite;
+}
+
+@keyframes slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status.run svg,
+    .card-bar::after {
+        animation: none;
+    }
 }
 
 /* Link per scaricare la singola immagine convertita */
 .card-download {
-    display: inline-block;
-    margin-top: 4px;
-}
-
-/* Senza questa regola, "display: inline-block" renderebbe visibili anche i link con hidden */
-.card-download[hidden] {
-    display: none;
+    align-self: flex-start;
+    font-size: 13px;
+    padding: 2px 4px;
 }
