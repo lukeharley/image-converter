@@ -27,6 +27,8 @@ fileInput.addEventListener('change', function () {
     
     const sizeKB = Math.round(file.size / 1024);
     message.textContent = `✅ ${file.name} · ${sizeKB} KB`;
+    // Prima di creare un nuovo URL, liberiamo il precedente
+    if (preview.src) URL.revokeObjectURL(preview.src);
     preview.src = URL.createObjectURL(file); 
     preview.hidden = false; 
 }); 
